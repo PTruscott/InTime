@@ -98,7 +98,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\Kinect.ico" />
-    <Resource Include="Images\Logo.png" />
     <Resource Include="Images\Status.png" />
     <Resource Include="Images\CheckedHover.png" />
     <Resource Include="Images\CheckedNormal.png" />

@@ -4,11 +4,18 @@
     using System.Windows;
     using System.Windows.Media;
     using Microsoft.Kinect;
+    using System.Windows.Controls;
+    using LiveCharts;
+    using LiveCharts.Defaults;
+    using LiveCharts.Wpf;
+    using System.ComponentModel;
+    using System.Linq;
+    using System;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         /// <summary>
         /// Width of output drawing
@@ -80,8 +87,40 @@
         /// </summary>
         public MainWindow()
         {
+            LineSeries l = new LineSeries { Values = new ChartValues<double> {1, 2, 3, 5, 6} };
+
+            LeftArmCollection = new SeriesCollection
+            {
+                l
+            };
+
             InitializeComponent();
+
+            DataContext = this; 
         }
+
+        private double _lastLecture;
+        private double _trend;
+        public SeriesCollection LeftArmCollection { get; set; }
+
+        public double LastLecture
+        {
+            get { return _lastLecture; }
+            set
+            {
+                _lastLecture = value;
+                OnPropertyChanged("LastLecture");
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName = null)
+        {
+            var handler = PropertyChanged;
+            if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
+        }
+
 
         /// <summary>
         /// Draws indicators to show which edges are clipping skeleton data
@@ -322,7 +361,7 @@
             Joint joint0 = skeleton.Joints[jointType0];
             Joint joint1 = skeleton.Joints[jointType1];
 
-            System.Console.WriteLine(jointType0 + ": (" + joint0.Position.X + ", " + joint0.Position.Y + ", " + joint0.Position.Z + ")");
+            Console.WriteLine(jointType0 + ": (" + joint0.Position.X + ", " + joint0.Position.Y + ", " + joint0.Position.Z + ")");
 
             // If we can't find either of these joints, exit
             if (joint0.TrackingState == JointTrackingState.NotTracked ||

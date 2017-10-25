@@ -15,7 +15,7 @@
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class MainWindow : Window
     {
         /// <summary>
         /// Width of output drawing
@@ -83,45 +83,47 @@
         private DrawingImage imageSource;
 
         /// <summary>
+        /// The graphs to display the positions of the limbs
+        /// </summary>
+        public SeriesCollection LeftArmCollection { get; set; }
+        public SeriesCollection RightArmCollection { get; set; }
+        public SeriesCollection LeftLegCollection { get; set; }
+        public SeriesCollection RightLegCollection { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
         public MainWindow()
         {
-            LineSeries l = new LineSeries { Values = new ChartValues<double> {1, 2, 3, 5, 6} };
-
-            LeftArmCollection = new SeriesCollection
-            {
-                l
-            };
+            InitGraphs();
 
             InitializeComponent();
 
             DataContext = this; 
         }
 
-        private double _lastLecture;
-        private double _trend;
-        public SeriesCollection LeftArmCollection { get; set; }
-
-        public double LastLecture
-        {
-            get { return _lastLecture; }
-            set
+        private void InitGraphs() {
+            LeftArmCollection = new SeriesCollection
             {
-                _lastLecture = value;
-                OnPropertyChanged("LastLecture");
-            }
+                new LineSeries { Values = new ChartValues<double> { 4, 5, 6, 2, 4, 5, 6, 2 } }
+            };
+
+            LeftLegCollection = new SeriesCollection
+            {
+                new LineSeries { Values = new ChartValues<double> { 2, 3, 6, 2, 2, 5, 6, 2} }
+            };
+
+            RightArmCollection = new SeriesCollection
+            {
+                new LineSeries { Values = new ChartValues<double> { 4, 5, 8, 3, 4, 5, 7, 2 } }
+            };
+
+            RightLegCollection = new SeriesCollection
+            {
+                new LineSeries { Values = new ChartValues<double> { 1, 5, 6, 1, 2, 5, 6, 2 } }
+            };
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged(string propertyName = null)
-        {
-            var handler = PropertyChanged;
-            if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-
+        
         /// <summary>
         /// Draws indicators to show which edges are clipping skeleton data
         /// </summary>

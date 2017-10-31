@@ -102,28 +102,110 @@
             DataContext = this; 
         }
 
+        private int NumberOfPoints = 60;
+
         private void InitGraphs() {
             LeftArmCollection = new SeriesCollection
             {
-                new LineSeries { Values = new ChartValues<double> { 4, 5, 6, 2, 4, 5, 6, 2 } }
+                new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
 
             LeftLegCollection = new SeriesCollection
             {
-                new LineSeries { Values = new ChartValues<double> { 2, 3, 6, 2, 2, 5, 6, 2} }
+                new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
 
             RightArmCollection = new SeriesCollection
             {
-                new LineSeries { Values = new ChartValues<double> { 4, 5, 8, 3, 4, 5, 7, 2 } }
+                new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
 
             RightLegCollection = new SeriesCollection
             {
-                new LineSeries { Values = new ChartValues<double> { 1, 5, 6, 1, 2, 5, 6, 2 } }
+                new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
+
+            for (int i = 0; i < NumberOfPoints - 1; i++) {
+                try
+                {
+                    RightArmCollection[0].Values.Add(new ObservableValue(0));
+                    RightLegCollection[0].Values.Add(new ObservableValue(0));
+                    LeftArmCollection[0].Values.Add(new ObservableValue(0));
+                    LeftLegCollection[0].Values.Add(new ObservableValue(0));
+                }
+                catch (InvalidCastException) {
+                    continue;
+                }
+            }
         }
-        
+
+        /// <summary>
+        /// Execute startup tasks
+        /// </summary>
+        /// <param name="sender">object sending the event</param>
+        /// <param name="e">event arguments</param>
+        private void WindowLoaded(object sender, RoutedEventArgs e)
+        {
+            // Create the drawing group we'll use for drawing
+            drawingGroup = new DrawingGroup();
+
+            // Create an image source that we can use in our image control
+            imageSource = new DrawingImage(drawingGroup);
+
+            // Display the drawing using our image control
+            Image.Source = imageSource;
+
+            // Look through all sensors and start the first connected one.
+            // This requires that a Kinect is connected at the time of app startup.
+            // To make your app robust against plug/unplug, 
+            // it is recommended to use KinectSensorChooser provided in Microsoft.Kinect.Toolkit (See components in Toolkit Browser).
+            foreach (var potentialSensor in KinectSensor.KinectSensors)
+            {
+                if (potentialSensor.Status == KinectStatus.Connected)
+                {
+                    sensor = potentialSensor;
+                    break;
+                }
+            }
+
+            if (null != sensor)
+            {
+                // Turn on the skeleton stream to receive skeleton frames
+                sensor.SkeletonStream.Enable();
+
+                // Add an event handler to be called whenever there is new color frame data
+                sensor.SkeletonFrameReady += SensorSkeletonFrameReady;
+
+                // Start the sensor!
+                try
+                {
+                    sensor.Start();
+                }
+                catch (IOException)
+                {
+                    sensor = null;
+                }
+            }
+
+            if (sensor == null)
+            {
+                statusText.Text = "No ready kinect found!";
+            }
+        }
+
+        /// <summary>
+        /// Execute shutdown tasks
+        /// </summary>
+        /// <param name="sender">object sending the event</param>
+        /// <param name="e">event arguments</param>
+        private void WindowClosing(object sender, CancelEventArgs e)
+        {
+            if (null != sensor)
+            {
+                sensor.Stop();
+            }
+        }
+
         /// <summary>
         /// Draws indicators to show which edges are clipping skeleton data
         /// </summary>
@@ -164,73 +246,32 @@
             }
         }
 
-        /// <summary>
-        /// Execute startup tasks
-        /// </summary>
-        /// <param name="sender">object sending the event</param>
-        /// <param name="e">event arguments</param>
-        private void WindowLoaded(object sender, RoutedEventArgs e)
+        private int counter = 0;
+        private void UpdateGraphs(Skeleton skeleton)
         {
-            // Create the drawing group we'll use for drawing
-            this.drawingGroup = new DrawingGroup();
-
-            // Create an image source that we can use in our image control
-            this.imageSource = new DrawingImage(this.drawingGroup);
-
-            // Display the drawing using our image control
-            Image.Source = this.imageSource;
-
-            // Look through all sensors and start the first connected one.
-            // This requires that a Kinect is connected at the time of app startup.
-            // To make your app robust against plug/unplug, 
-            // it is recommended to use KinectSensorChooser provided in Microsoft.Kinect.Toolkit (See components in Toolkit Browser).
-            foreach (var potentialSensor in KinectSensor.KinectSensors)
-            {
-                if (potentialSensor.Status == KinectStatus.Connected)
-                {
-                    this.sensor = potentialSensor;
-                    break;
-                }
+            if (counter < 4) {
+                counter++;
+                return;
             }
-
-            if (null != this.sensor)
-            {
-                // Turn on the skeleton stream to receive skeleton frames
-                this.sensor.SkeletonStream.Enable();
-
-                // Add an event handler to be called whenever there is new color frame data
-                this.sensor.SkeletonFrameReady += this.SensorSkeletonFrameReady;
-
-                // Start the sensor!
-                try
-                {
-                    this.sensor.Start();
-                }
-                catch (IOException)
-                {
-                    this.sensor = null;
-                }
-            }
-
-            if (null == this.sensor)
-            {
-                this.statusText.Text = "No ready kinect found!";
-            }
+            RightArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.HandRight, skeleton)));
+            RightArmCollection[0].Values.RemoveAt(0);
+            RightLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleRight, skeleton)));
+            RightLegCollection[0].Values.RemoveAt(0);
+            LeftArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.HandLeft, skeleton)));
+            LeftArmCollection[0].Values.RemoveAt(0);
+            LeftLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleLeft, skeleton)));
+            LeftLegCollection[0].Values.RemoveAt(0);
+            counter = 0;
         }
 
-        /// <summary>
-        /// Execute shutdown tasks
-        /// </summary>
-        /// <param name="sender">object sending the event</param>
-        /// <param name="e">event arguments</param>
-        private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
+        private double CalulateJointDist(JointType jointType, Skeleton skeleton)
         {
-            if (null != this.sensor)
-            {
-                this.sensor.Stop();
-            }
-        }
+            Joint joint0 = skeleton.Joints[jointType];
+            Joint joint1 = skeleton.Joints[JointType.HipCenter];
 
+            double dist = Math.Abs(joint0.Position.X - joint1.Position.X) + Math.Abs(joint0.Position.Y - joint1.Position.Y) + Math.Abs(joint0.Position.Z - joint1.Position.Z);
+            return dist;
+        }
         /// <summary>
         /// Event handler for Kinect sensor's SkeletonFrameReady event
         /// </summary>
@@ -262,14 +303,16 @@
 
                         if (skel.TrackingState == SkeletonTrackingState.Tracked)
                         {
-                            this.DrawBonesAndJoints(skel, dc);
+                            UpdateGraphs(skel);
+                            DrawBonesAndJoints(skel, dc);
+                            break;
                         }
                         else if (skel.TrackingState == SkeletonTrackingState.PositionOnly)
                         {
                             dc.DrawEllipse(
-                            this.centerPointBrush,
+                            centerPointBrush,
                             null,
-                            this.SkeletonPointToScreen(skel.Position),
+                            SkeletonPointToScreen(skel.Position),
                             BodyCenterThickness,
                             BodyCenterThickness);
                         }
@@ -277,7 +320,7 @@
                 }
 
                 // prevent drawing outside of our render area
-                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+                drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
             }
         }
 
@@ -289,34 +332,34 @@
         private void DrawBonesAndJoints(Skeleton skeleton, DrawingContext drawingContext)
         {
             // Render Torso
-            this.DrawBone(skeleton, drawingContext, JointType.Head, JointType.ShoulderCenter);
-            this.DrawBone(skeleton, drawingContext, JointType.ShoulderCenter, JointType.ShoulderLeft);
-            this.DrawBone(skeleton, drawingContext, JointType.ShoulderCenter, JointType.ShoulderRight);
-            this.DrawBone(skeleton, drawingContext, JointType.ShoulderCenter, JointType.Spine);
-            this.DrawBone(skeleton, drawingContext, JointType.Spine, JointType.HipCenter);
-            this.DrawBone(skeleton, drawingContext, JointType.HipCenter, JointType.HipLeft);
-            this.DrawBone(skeleton, drawingContext, JointType.HipCenter, JointType.HipRight);
+            DrawBone(skeleton, drawingContext, JointType.Head, JointType.ShoulderCenter);
+            DrawBone(skeleton, drawingContext, JointType.ShoulderCenter, JointType.ShoulderLeft);
+            DrawBone(skeleton, drawingContext, JointType.ShoulderCenter, JointType.ShoulderRight);
+            DrawBone(skeleton, drawingContext, JointType.ShoulderCenter, JointType.Spine);
+            DrawBone(skeleton, drawingContext, JointType.Spine, JointType.HipCenter);
+            DrawBone(skeleton, drawingContext, JointType.HipCenter, JointType.HipLeft);
+            DrawBone(skeleton, drawingContext, JointType.HipCenter, JointType.HipRight);
 
             // Left Arm
-            this.DrawBone(skeleton, drawingContext, JointType.ShoulderLeft, JointType.ElbowLeft);
-            this.DrawBone(skeleton, drawingContext, JointType.ElbowLeft, JointType.WristLeft);
-            this.DrawBone(skeleton, drawingContext, JointType.WristLeft, JointType.HandLeft);
+            DrawBone(skeleton, drawingContext, JointType.ShoulderLeft, JointType.ElbowLeft);
+            DrawBone(skeleton, drawingContext, JointType.ElbowLeft, JointType.WristLeft);
+            DrawBone(skeleton, drawingContext, JointType.WristLeft, JointType.HandLeft);
 
             // Right Arm
-            this.DrawBone(skeleton, drawingContext, JointType.ShoulderRight, JointType.ElbowRight);
-            this.DrawBone(skeleton, drawingContext, JointType.ElbowRight, JointType.WristRight);
-            this.DrawBone(skeleton, drawingContext, JointType.WristRight, JointType.HandRight);
+            DrawBone(skeleton, drawingContext, JointType.ShoulderRight, JointType.ElbowRight);
+            DrawBone(skeleton, drawingContext, JointType.ElbowRight, JointType.WristRight);
+            DrawBone(skeleton, drawingContext, JointType.WristRight, JointType.HandRight);
 
             // Left Leg
-            this.DrawBone(skeleton, drawingContext, JointType.HipLeft, JointType.KneeLeft);
-            this.DrawBone(skeleton, drawingContext, JointType.KneeLeft, JointType.AnkleLeft);
-            this.DrawBone(skeleton, drawingContext, JointType.AnkleLeft, JointType.FootLeft);
+            DrawBone(skeleton, drawingContext, JointType.HipLeft, JointType.KneeLeft);
+            DrawBone(skeleton, drawingContext, JointType.KneeLeft, JointType.AnkleLeft);
+            DrawBone(skeleton, drawingContext, JointType.AnkleLeft, JointType.FootLeft);
 
             // Right Leg
-            this.DrawBone(skeleton, drawingContext, JointType.HipRight, JointType.KneeRight);
-            this.DrawBone(skeleton, drawingContext, JointType.KneeRight, JointType.AnkleRight);
-            this.DrawBone(skeleton, drawingContext, JointType.AnkleRight, JointType.FootRight);
- 
+            DrawBone(skeleton, drawingContext, JointType.HipRight, JointType.KneeRight);
+            DrawBone(skeleton, drawingContext, JointType.KneeRight, JointType.AnkleRight);
+            DrawBone(skeleton, drawingContext, JointType.AnkleRight, JointType.FootRight);
+
             // Render Joints
             foreach (Joint joint in skeleton.Joints)
             {
@@ -324,16 +367,16 @@
 
                 if (joint.TrackingState == JointTrackingState.Tracked)
                 {
-                    drawBrush = this.trackedJointBrush;                    
+                    drawBrush = trackedJointBrush;
                 }
                 else if (joint.TrackingState == JointTrackingState.Inferred)
                 {
-                    drawBrush = this.inferredJointBrush;                    
+                    drawBrush = inferredJointBrush;                    
                 }
 
                 if (drawBrush != null)
                 {
-                    drawingContext.DrawEllipse(drawBrush, null, this.SkeletonPointToScreen(joint.Position), JointThickness, JointThickness);
+                    drawingContext.DrawEllipse(drawBrush, null, SkeletonPointToScreen(joint.Position), JointThickness, JointThickness);
                 }
             }
         }
@@ -347,7 +390,7 @@
         {
             // Convert point to depth space.  
             // We are not using depth directly, but we do want the points in our 640x480 output resolution.
-            DepthImagePoint depthPoint = this.sensor.CoordinateMapper.MapSkeletonPointToDepthPoint(skelpoint, DepthImageFormat.Resolution640x480Fps30);
+            DepthImagePoint depthPoint = sensor.CoordinateMapper.MapSkeletonPointToDepthPoint(skelpoint, DepthImageFormat.Resolution640x480Fps30);
             return new Point(depthPoint.X, depthPoint.Y);
         }
 
@@ -363,7 +406,7 @@
             Joint joint0 = skeleton.Joints[jointType0];
             Joint joint1 = skeleton.Joints[jointType1];
 
-            Console.WriteLine(jointType0 + ": (" + joint0.Position.X + ", " + joint0.Position.Y + ", " + joint0.Position.Z + ")");
+            //Console.WriteLine(jointType0 + ": (" + joint0.Position.X + ", " + joint0.Position.Y + ", " + joint0.Position.Z + ")");
 
             // If we can't find either of these joints, exit
             if (joint0.TrackingState == JointTrackingState.NotTracked ||
@@ -380,13 +423,13 @@
             }
 
             // We assume all drawn bones are inferred unless BOTH joints are tracked
-            Pen drawPen = this.inferredBonePen;
+            Pen drawPen = inferredBonePen;
             if (joint0.TrackingState == JointTrackingState.Tracked && joint1.TrackingState == JointTrackingState.Tracked)
             {
-                drawPen = this.trackedBonePen;
+                drawPen = trackedBonePen;
             }
 
-            drawingContext.DrawLine(drawPen, this.SkeletonPointToScreen(joint0.Position), this.SkeletonPointToScreen(joint1.Position));
+            drawingContext.DrawLine(drawPen, SkeletonPointToScreen(joint0.Position), SkeletonPointToScreen(joint1.Position));
         }
 
         /// <summary>
@@ -396,15 +439,15 @@
         /// <param name="e">event arguments</param>
         private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
         {
-            if (null != this.sensor)
+            if (sensor != null)
             {
-                if (this.checkBoxSeatedMode.IsChecked.GetValueOrDefault())
+                if (checkBoxSeatedMode.IsChecked.GetValueOrDefault())
                 {
-                    this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                    sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
                 }
                 else
                 {
-                    this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Default;
+                    sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Default;
                 }
             }
         }

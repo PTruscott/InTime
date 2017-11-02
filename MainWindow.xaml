@@ -78,7 +78,7 @@
                 <Style TargetType="lvc:LineSeries">
                     <Setter Property="StrokeThickness" Value="2"></Setter>
                     <Setter Property="Stroke" Value="White"></Setter>
-                    <Setter Property="Fill" Value="#4EFFFFFF"></Setter>
+                    <Setter Property="Fill" Value="Black"></Setter>
                     <Setter Property="PointGeometrySize" Value="0"></Setter>
                     <Setter Property="LineSmoothness" Value="0.5"></Setter>
                 </Style>
@@ -121,7 +121,7 @@
                 <Style TargetType="lvc:LineSeries">
                     <Setter Property="StrokeThickness" Value="2"></Setter>
                     <Setter Property="Stroke" Value="#0000FF"></Setter>
-                    <Setter Property="Fill" Value="#4E0000FF"></Setter>
+                    <Setter Property="Fill" Value="Black"></Setter>
                     <Setter Property="PointGeometrySize" Value="0"></Setter>
                     <Setter Property="LineSmoothness" Value="0.5"></Setter>
                 </Style>
@@ -163,7 +163,7 @@
                 <Style TargetType="lvc:LineSeries">
                     <Setter Property="StrokeThickness" Value="2"></Setter>
                     <Setter Property="Stroke" Value="#00FF00"></Setter>
-                    <Setter Property="Fill" Value="#4E00FF00"></Setter>
+                    <Setter Property="Fill" Value="Black"></Setter>
                     <Setter Property="PointGeometrySize" Value="0"></Setter>
                     <Setter Property="LineSmoothness" Value="0.5"></Setter>
                 </Style>
@@ -206,7 +206,7 @@
                 <Style TargetType="lvc:LineSeries">
                     <Setter Property="StrokeThickness" Value="2"></Setter>
                     <Setter Property="Stroke" Value="#FF0000"></Setter>
-                    <Setter Property="Fill" Value="#4EFF0000"></Setter>
+                    <Setter Property="Fill" Value="Black"></Setter>
                     <Setter Property="PointGeometrySize" Value="0"></Setter>
                     <Setter Property="LineSmoothness" Value="0.5"></Setter>
                 </Style>

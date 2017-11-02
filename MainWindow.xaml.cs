@@ -11,6 +11,8 @@
     using System.ComponentModel;
     using System.Linq;
     using System;
+    using static InTime.Peak;
+
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -90,6 +92,10 @@
         public SeriesCollection LeftLegCollection { get; set; }
         public SeriesCollection RightLegCollection { get; set; }
 
+        private int NumberOfPoints = 60;
+
+        private System.Collections.ArrayList Peaks = new System.Collections.ArrayList();
+
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
@@ -101,9 +107,6 @@
 
             DataContext = this; 
         }
-
-        private int NumberOfPoints = 60;
-
         private void InitGraphs() {
             LeftArmCollection = new SeriesCollection
             {
@@ -247,12 +250,69 @@
         }
 
         private int counter = 0;
-        private void UpdateGraphs(Skeleton skeleton)
-        {
-            if (counter < 4) {
+
+        private void Update(Skeleton skeleton) {
+            if (counter < 4)
+            {
                 counter++;
                 return;
             }
+
+            Boolean remove = false;
+            foreach (Peak p in Peaks) {
+                p.timeStep();
+                if (p.getTimeStamp() < 0) {
+                    remove = true;
+                }
+            }
+            if (remove) {
+                Peaks.RemoveAt(0);
+            }
+
+            UpdateGraphs(skeleton);
+
+            UpdatePeaks();
+
+            counter = 0;
+        }
+
+        private void UpdatePeaks() {
+
+            IChartValues Values = LeftArmCollection[0].Values;
+            //check if there is a peak
+            //if on a downward slope, must have previously been a peak
+            double point1 = ((ObservableValue)Values[NumberOfPoints - 1]).Value;
+            double point2 = ((ObservableValue)Values[NumberOfPoints - 2]).Value;
+            double point3 = ((ObservableValue)Values[NumberOfPoints - 3]).Value;
+
+            if (point1 < point2)
+            {
+                //if the third value is less than the second the second must be a peak
+                //wooo magic number to avoid tremours
+                if (point3 < point2 && (Peaks.Count == 0 || point2 > ((Peak)Peaks[Peaks.Count - 1]).getRDitch() + 0.05)) 
+                {
+                    //first peak, so lDitch is 0
+                    if (Peaks.Count == 0)
+                    {
+                        Peaks.Add(new Peak(0, point1, point2, NumberOfPoints));
+                    }
+                    else
+                    {
+                        //the lditch of the new peak is the rditch of the previous
+                        Peaks.Add(new Peak(((Peak)Peaks[Peaks.Count - 1]).getRDitch(), point1, point2, NumberOfPoints));
+                    }
+                    Console.WriteLine("Left arm peak! Height: " + ((Peak)Peaks[Peaks.Count - 1]).getSize());
+                }
+                //if not, the last peak is more pronouced
+                else
+                {
+                    ((Peak)Peaks[Peaks.Count - 1]).setRDitch(point1);
+                }
+            }
+        }
+
+        private void UpdateGraphs(Skeleton skeleton)
+        {
             RightArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.HandRight, skeleton)));
             RightArmCollection[0].Values.RemoveAt(0);
             RightLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleRight, skeleton)));
@@ -261,13 +321,12 @@
             LeftArmCollection[0].Values.RemoveAt(0);
             LeftLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleLeft, skeleton)));
             LeftLegCollection[0].Values.RemoveAt(0);
-            counter = 0;
         }
 
         private double CalulateJointDist(JointType jointType, Skeleton skeleton)
         {
             Joint joint0 = skeleton.Joints[jointType];
-            Joint joint1 = skeleton.Joints[JointType.HipCenter];
+            Joint joint1 = skeleton.Joints[JointType.Spine];
 
             double dist = Math.Abs(joint0.Position.X - joint1.Position.X) + Math.Abs(joint0.Position.Y - joint1.Position.Y) + Math.Abs(joint0.Position.Z - joint1.Position.Z);
             return dist;
@@ -303,7 +362,7 @@
 
                         if (skel.TrackingState == SkeletonTrackingState.Tracked)
                         {
-                            UpdateGraphs(skel);
+                            Update(skel);
                             DrawBonesAndJoints(skel, dc);
                             break;
                         }

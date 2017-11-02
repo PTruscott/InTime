@@ -1,20 +1,30 @@
 ﻿namespace InTime
 {
-    class Peak
+    public class Peak
     {
-        private float size;
-        private float timeStamp;
+        private double lDitch;
+        private double rDitch;
+        private double size;
+        private int timeStamp;
+        private double height;
 
-        public Peak(float size, float timeStamp) {
-            this.size = size;
+        public Peak(double lDitch, double rDitch, double height, int timeStamp) {
+            size = height-(lDitch+rDitch)/2;
+            this.lDitch = lDitch;
+            this.rDitch = rDitch;
             this.timeStamp = timeStamp;
+            this.height = height;
         }
 
-        public float getSize() {
+        public double getSize() {
             return size;
         }
 
-        public float getTimeStampe() {
+        public double getRDitch() {
+            return rDitch;
+        }
+
+        public int getTimeStamp() {
             return timeStamp;
         }
 
@@ -22,8 +32,9 @@
             timeStamp--;
         }
 
-        public void setSize(float size) {
-            this.size = size;
+        public void setRDitch(double rDitch) {
+            this.rDitch = rDitch;
+            size = height - (lDitch + rDitch) / 2;
         }
     }
 }

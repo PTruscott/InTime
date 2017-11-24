@@ -498,6 +498,17 @@
         /// <param name="e">event arguments</param>
         private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
         {
+            var p1 = new MediaPlayer();
+             p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
+            p1.Play();
+
+            // this sleep is here just so you can distinguish the two sounds playing simultaneously
+            System.Threading.Thread.Sleep(50);
+
+            var p2 = new MediaPlayer();
+            p2.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\kick.wav"));
+            p2.Play();
+
             if (sensor != null)
             {
                 if (checkBoxSeatedMode.IsChecked.GetValueOrDefault())

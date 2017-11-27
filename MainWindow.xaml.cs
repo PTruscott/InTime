@@ -9,9 +9,8 @@
     using LiveCharts.Defaults;
     using LiveCharts.Wpf;
     using System.ComponentModel;
-    using System.Linq;
     using System;
-    using static InTime.Peak;
+    using FFTLibrary;
 
 
     /// <summary>
@@ -249,14 +248,7 @@
             }
         }
 
-        private int counter = 0;
-
         private void Update(Skeleton skeleton) {
-            if (counter < 4)
-            {
-                counter++;
-                return;
-            }
 
             Boolean remove = false;
             foreach (Peak p in Peaks) {
@@ -272,8 +264,6 @@
             UpdateGraphs(skeleton);
 
             UpdatePeaks();
-
-            counter = 0;
         }
 
         private void UpdatePeaks() {
@@ -301,11 +291,15 @@
                         //the lditch of the new peak is the rditch of the previous
                         Peaks.Add(new Peak(((Peak)Peaks[Peaks.Count - 1]).getRDitch(), point1, point2, NumberOfPoints));
                     }
+                    var p1 = new MediaPlayer();
+                    p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
+                    p1.Play();
                     Console.WriteLine("Left arm peak! Height: " + ((Peak)Peaks[Peaks.Count - 1]).getSize());
                 }
                 //if not, the last peak is more pronouced
                 else
                 {
+                    Console.WriteLine(Peaks.Count);
                     ((Peak)Peaks[Peaks.Count - 1]).setRDitch(point1);
                 }
             }
@@ -313,11 +307,11 @@
 
         private void UpdateGraphs(Skeleton skeleton)
         {
-            RightArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.HandRight, skeleton)));
+            RightArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.WristRight, skeleton)));
             RightArmCollection[0].Values.RemoveAt(0);
             RightLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleRight, skeleton)));
             RightLegCollection[0].Values.RemoveAt(0);
-            LeftArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.HandLeft, skeleton)));
+            LeftArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.WristLeft, skeleton)));
             LeftArmCollection[0].Values.RemoveAt(0);
             LeftLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleLeft, skeleton)));
             LeftLegCollection[0].Values.RemoveAt(0);
@@ -499,7 +493,7 @@
         private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
         {
             var p1 = new MediaPlayer();
-             p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
+            p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
             p1.Play();
 
             // this sleep is here just so you can distinguish the two sounds playing simultaneously
@@ -508,6 +502,13 @@
             var p2 = new MediaPlayer();
             p2.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\kick.wav"));
             p2.Play();
+
+            double[] array = new double[] { 1, 1, 1, 2, 1, 1, 1, 1, 2, 1 };
+            Complex[] nums = Complex.DFT(array);
+            for (int i = 0; i < nums.Length; i++) {
+                Console.WriteLine("("+nums[i].re+", "+nums[i].im+")");
+                Console.WriteLine(Math.Sqrt(nums[i].re * nums[i].re + nums[i].im * nums[i].im));
+            }
 
             if (sensor != null)
             {

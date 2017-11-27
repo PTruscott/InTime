@@ -90,8 +90,10 @@ ipch/
 # Visual Studio profiler
 *.psess
 *.vsp
+*.vs
 *.vspx
 *.sap
+.vs/
 
 # TFS 2012 Local Workspace
 $tf/

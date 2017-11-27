@@ -36,3 +36,5 @@ C:\Users\Peran\Coding\InTime\obj\Debug\InTime_MarkupCompile.cache
 C:\Users\Peran\Coding\InTime\obj\Debug\InTime.g.resources
 C:\Users\Peran\Coding\InTime\obj\Debug\InTime.exe
 C:\Users\Peran\Coding\InTime\obj\Debug\InTime.pdb
+C:\Users\Peran\Coding\InTime\bin\Debug\FFTLibrary.dll
+C:\Users\Peran\Coding\InTime\bin\Debug\FFTLibrary.pdb

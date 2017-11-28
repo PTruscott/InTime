@@ -38,3 +38,7 @@ C:\Users\Peran\Coding\InTime\obj\Debug\InTime.exe
 C:\Users\Peran\Coding\InTime\obj\Debug\InTime.pdb
 C:\Users\Peran\Coding\InTime\bin\Debug\FFTLibrary.dll
 C:\Users\Peran\Coding\InTime\bin\Debug\FFTLibrary.pdb
+C:\Users\Peran\Coding\InTime\bin\Debug\AForge.Math.dll
+C:\Users\Peran\Coding\InTime\bin\Debug\AForge.dll
+C:\Users\Peran\Coding\InTime\bin\Debug\AForge.Math.xml
+C:\Users\Peran\Coding\InTime\bin\Debug\AForge.xml

@@ -54,6 +54,9 @@
     <ApplicationIcon>Images\Kinect.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AForge.Math">
+      <HintPath>..\..\..\..\Program Files (x86)\AForge.NET\Framework\Release\AForge.Math.dll</HintPath>
+    </Reference>
     <Reference Include="FFTLibrary">
       <HintPath>FFTLibrary\C#\FFTLibrary\bin\Debug\FFTLibrary.dll</HintPath>
     </Reference>
@@ -93,6 +96,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="BPMCounter.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

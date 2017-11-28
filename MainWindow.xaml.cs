@@ -41,7 +41,7 @@
         /// <summary>
         /// Thickness of clip edge rectangles
         /// </summary>
-        private const double ClipBoundsThickness = 10;
+        private const double ClipBoundsThickness = 8;
 
         /// <summary>
         /// Brush used to draw skeleton center point
@@ -91,22 +91,48 @@
         public SeriesCollection LeftLegCollection { get; set; }
         public SeriesCollection RightLegCollection { get; set; }
 
-        private int NumberOfPoints = 60;
+        private int NumberOfPoints = 300;
+        private int RefreshRate = 30;
 
-        private System.Collections.ArrayList Peaks = new System.Collections.ArrayList();
+        private System.Collections.Generic.List<Peak>[] Peaks;
+        private System.Collections.Generic.List<double>[] Points;
+        private BPMCounter[] bpms;
+
+        MediaPlayer[] players;
+        int MediaPlayers = 10;
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
         public MainWindow()
         {
+            Points = new System.Collections.Generic.List<double>[4];
+            Peaks = new System.Collections.Generic.List<Peak>[4];
+            for (int i = 0; i < Points.Length; i++)
+            {
+                Peaks[i] = new System.Collections.Generic.List<Peak>();
+                Points[i] = new System.Collections.Generic.List<double>();
+                for (int j = 0; j < NumberOfPoints; j++)
+                {
+                    Points[i].Add(0);
+                }
+            }
             InitGraphs();
 
             InitializeComponent();
 
-            DataContext = this; 
+            DataContext = this;
+
+            bpms = new BPMCounter[] { new BPMCounter(rightText), new BPMCounter(leftText) };
+
+            players = new MediaPlayer[MediaPlayers];
+
+            for (int i = 0; i < MediaPlayers; i++) {
+                players[i] = new MediaPlayer();
+            }
         }
-        private void InitGraphs() {
+        private void InitGraphs()
+        {
             LeftArmCollection = new SeriesCollection
             {
                 new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
@@ -127,7 +153,8 @@
                 new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
 
-            for (int i = 0; i < NumberOfPoints - 1; i++) {
+            for (int i = 0; i < NumberOfPoints/5 - 1; i++)
+            {
                 try
                 {
                     RightArmCollection[0].Values.Add(new ObservableValue(0));
@@ -135,7 +162,8 @@
                     LeftArmCollection[0].Values.Add(new ObservableValue(0));
                     LeftLegCollection[0].Values.Add(new ObservableValue(0));
                 }
-                catch (InvalidCastException) {
+                catch (InvalidCastException)
+                {
                     continue;
                 }
             }
@@ -248,72 +276,141 @@
             }
         }
 
-        private void Update(Skeleton skeleton) {
+        int counter = 0;
 
-            Boolean remove = false;
-            foreach (Peak p in Peaks) {
-                p.timeStep();
-                if (p.getTimeStamp() < 0) {
-                    remove = true;
+        private void Update(Skeleton skeleton)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                Boolean remove = false;
+                foreach (Peak p in Peaks[i])
+                {
+                    p.timeStep();
+                    if (p.getTimeStamp() < 0)
+                    {
+                        remove = true;
+                        //Console.WriteLine(p.getTimeStamp());
+                    }
+                }
+                if (remove)
+                {
+                    Peaks[i].RemoveAt(0);
                 }
             }
-            if (remove) {
-                Peaks.RemoveAt(0);
-            }
 
-            UpdateGraphs(skeleton);
+
+            CalculateDist(skeleton);
+            /*
+            counter++;
+
+            if (counter > 300)
+            {
+                Complex[] nums = Complex.DFT(Points[0].ToArray());
+                PrintComplex(nums);
+                counter = 0;
+            }
+            */
+
+            UpdateGraphs();
 
             UpdatePeaks();
+
+            CalculateBPM();
         }
 
-        private void UpdatePeaks() {
+        private void CalculateBPM() {
+            for (int i = 0; i < 2; i++) {
+                double pCounter = 0;
+                foreach (Peak p in Peaks[i]) {
+                    pCounter++;
+                }
+                double bpm = NumberOfPoints / RefreshRate; //number of seconds
+                bpm = pCounter / bpm; //number of peaks a second
+                bpm *= 60; //number of peaks a minute
+                bpms[i].update(bpm);
+            }
 
-            IChartValues Values = LeftArmCollection[0].Values;
-            //check if there is a peak
-            //if on a downward slope, must have previously been a peak
-            double point1 = ((ObservableValue)Values[NumberOfPoints - 1]).Value;
-            double point2 = ((ObservableValue)Values[NumberOfPoints - 2]).Value;
-            double point3 = ((ObservableValue)Values[NumberOfPoints - 3]).Value;
+            if (IsCloseTo(bpms[0].getBPM(), bpms[1].getBPM())) {
+                bpmCounterLabel.Text = "" + (bpms[0].getBPM() + bpms[1].getBPM()) / 2;
+            }
+            else {
+                bpmCounterLabel.Text = "" + Math.Max(bpms[0].getBPM(), bpms[1].getBPM());
+            }
+        }
 
-            if (point1 < point2)
+        private Boolean IsCloseTo(int num1, int num2) {
+            int range = 10;
+            return (num2 > num1 - range && num2 < num1 + range);
+        }
+
+        private void CalculateDist(Skeleton skeleton)
+        {
+            Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
+            Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
+            Points[2].Add(CalulateJointDist(JointType.AnkleRight, skeleton));
+            Points[3].Add(CalulateJointDist(JointType.AnkleLeft, skeleton));
+            for (int i = 0; i < Points.Length; i++)
             {
-                //if the third value is less than the second the second must be a peak
-                //wooo magic number to avoid tremours
-                if (point3 < point2 && (Peaks.Count == 0 || point2 > ((Peak)Peaks[Peaks.Count - 1]).getRDitch() + 0.05)) 
+                Points[i].RemoveAt(0);
+            }
+        }
+
+        private void UpdatePeaks()
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                double[] Values = Points[i].ToArray();
+                //check if there is a peak
+                //if on a downward slope, must have previously been a peak
+                double point1 = Values[NumberOfPoints - 1];
+                double point2 = Values[NumberOfPoints - 2];
+                double point3 = Values[NumberOfPoints - 3];
+
+                if (point1 < point2)
                 {
-                    //first peak, so lDitch is 0
-                    if (Peaks.Count == 0)
+                    //if the third value is less than the second the second must be a peak
+                    //wooo magic number to avoid tremours
+                    if (point3 < point2 && ((Peaks[i].Count == 0 && point2 > 0.1) || point2 > ((Peak)Peaks[i][Peaks[i].Count - 1]).getRDitch() + 0.2))
                     {
-                        Peaks.Add(new Peak(0, point1, point2, NumberOfPoints));
+                        //first peak, so lDitch is 0
+                        if (Peaks[i].Count == 0)
+                        {
+                            Peaks[i].Add(new Peak(0, point1, point2, NumberOfPoints));
+                        }
+                        else
+                        {
+                            //the lditch of the new peak is the rditch of the previous
+                            Peaks[i].Add(new Peak(((Peak)Peaks[i][Peaks[i].Count - 1]).getRDitch(), point1, point2, NumberOfPoints));
+                        }
+                        /*
+                        var p1 = new MediaPlayer();
+                        p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
+                        p1.Play(); 
+                        Console.WriteLine("Left arm peak! Height: " + ((Peak)Peaks[i][Peaks[i].Count - 1]).getSize());
+                        */
                     }
+                    //if not, the last peak is more pronouced
                     else
                     {
-                        //the lditch of the new peak is the rditch of the previous
-                        Peaks.Add(new Peak(((Peak)Peaks[Peaks.Count - 1]).getRDitch(), point1, point2, NumberOfPoints));
+                        if (Peaks[i].Count > 0)
+                        {
+                            ((Peak)Peaks[i][Peaks[i].Count - 1]).setRDitch(point1);
+                        }
                     }
-                    var p1 = new MediaPlayer();
-                    p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
-                    p1.Play();
-                    Console.WriteLine("Left arm peak! Height: " + ((Peak)Peaks[Peaks.Count - 1]).getSize());
-                }
-                //if not, the last peak is more pronouced
-                else
-                {
-                    Console.WriteLine(Peaks.Count);
-                    ((Peak)Peaks[Peaks.Count - 1]).setRDitch(point1);
                 }
             }
         }
 
-        private void UpdateGraphs(Skeleton skeleton)
+        private void UpdateGraphs()
         {
-            RightArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.WristRight, skeleton)));
+            int lastItem = NumberOfPoints - 1;
+            RightArmCollection[0].Values.Add(new ObservableValue(Points[0][lastItem]));
             RightArmCollection[0].Values.RemoveAt(0);
-            RightLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleRight, skeleton)));
-            RightLegCollection[0].Values.RemoveAt(0);
-            LeftArmCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.WristLeft, skeleton)));
+            LeftArmCollection[0].Values.Add(new ObservableValue(Points[1][lastItem]));
             LeftArmCollection[0].Values.RemoveAt(0);
-            LeftLegCollection[0].Values.Add(new ObservableValue(CalulateJointDist(JointType.AnkleLeft, skeleton)));
+            RightLegCollection[0].Values.Add(new ObservableValue(Points[2][lastItem]));
+            RightLegCollection[0].Values.RemoveAt(0);
+            LeftLegCollection[0].Values.Add(new ObservableValue(Points[3][lastItem]));
             LeftLegCollection[0].Values.RemoveAt(0);
         }
 
@@ -424,7 +521,7 @@
                 }
                 else if (joint.TrackingState == JointTrackingState.Inferred)
                 {
-                    drawBrush = inferredJointBrush;                    
+                    drawBrush = inferredJointBrush;
                 }
 
                 if (drawBrush != null)
@@ -492,23 +589,15 @@
         /// <param name="e">event arguments</param>
         private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
         {
-            var p1 = new MediaPlayer();
-            p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
-            p1.Play();
+            double[] array = new double[] { 0, 0, 0, 0, 1, 0, 0, 0, 0 };
+            Complex[] nums1 = Complex.DFT(array);
+            PrintComplex(nums1);
+            AForge.Math.Complex[] nums = new AForge.Math.Complex[] { new AForge.Math.Complex(0, 0), new AForge.Math.Complex(0, 0), new AForge.Math.Complex(0, 0), new AForge.Math.Complex(2, 0), new AForge.Math.Complex(1, 0) };
+            AForge.Math.FourierTransform.DFT(nums, AForge.Math.FourierTransform.Direction.Forward);
+            PrintComplex(nums);
 
-            // this sleep is here just so you can distinguish the two sounds playing simultaneously
-            System.Threading.Thread.Sleep(50);
-
-            var p2 = new MediaPlayer();
-            p2.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\kick.wav"));
-            p2.Play();
-
-            double[] array = new double[] { 1, 1, 1, 2, 1, 1, 1, 1, 2, 1 };
-            Complex[] nums = Complex.DFT(array);
-            for (int i = 0; i < nums.Length; i++) {
-                Console.WriteLine("("+nums[i].re+", "+nums[i].im+")");
-                Console.WriteLine(Math.Sqrt(nums[i].re * nums[i].re + nums[i].im * nums[i].im));
-            }
+            //PrintComplex(nums);
+            PlayHihat();
 
             if (sensor != null)
             {
@@ -522,5 +611,68 @@
                 }
             }
         }
+
+        private void PrintComplex(Complex[] nums)
+        {
+            String s = "[";
+
+            for (int i = 0; i < nums.Length; i++)
+            {
+                if (i != 0) s += ", ";
+                var num = Math.Sqrt(nums[i].re * nums[i].re + nums[i].im * nums[i].im);
+                if (num < 0.01) num = 0;
+                s += num;
+
+                LeftLegCollection[0].Values.RemoveAt(0);
+                LeftLegCollection[0].Values.Add(new ObservableValue(num));
+            }
+
+            s += "]";
+            Console.WriteLine(s);
+        }
+
+        private void PrintComplex(AForge.Math.Complex[] nums)
+        {
+            String s = "[";
+
+            for (int i = 0; i < nums.Length; i++)
+            {
+                if (i != 0) s += ", ";
+                var num = Math.Sqrt(nums[i].Re * nums[i].Re + nums[i].Im * nums[i].Im);
+                if (num < 0.01) num = 0;
+                s += num;
+
+                LeftLegCollection[0].Values.RemoveAt(0);
+                LeftLegCollection[0].Values.Add(new ObservableValue(num));
+            }
+
+            s += "]";
+            Console.WriteLine(s);
+
+        }
+
+
+        public void PlayHihat()
+        {
+            if (MediaPlayers > players.Length - 1) {
+                MediaPlayers = 0;
+            }
+            //players[MediaPlayers] = new MediaPlayer();
+            players[MediaPlayers].Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
+            players[MediaPlayers].Play();
+            MediaPlayers++;
+        }
+        public void PlayKick()
+        {
+            if (MediaPlayers > players.Length - 1)
+            {
+                MediaPlayers = 0;
+            }
+            players[MediaPlayers].Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\kick.wav"));
+            players[MediaPlayers].Play();
+            MediaPlayers++;
+        }
+
     }
+
 }

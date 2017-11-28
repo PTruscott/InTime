@@ -97,7 +97,7 @@
             <TextBlock Grid.Row="0" HorizontalAlignment="Center" TextAlignment="Center" Padding="0, 10, 0, 10" Foreground="White" FontSize="18">
                 Left Arm
             </TextBlock>
-            <TextBlock Grid.Row="1" HorizontalAlignment="Center" TextAlignment="Center" Foreground="#59FFFFFF" Padding="0,0,0,10">
+            <TextBlock Name="leftText" Grid.Row="1" HorizontalAlignment="Center" TextAlignment="Center" Foreground="#59FFFFFF" Padding="0,0,0,10">
                 N/A BPM
             </TextBlock>
             <!-- minus padding means that there are no unslightly black borders turning up from hiding the axis -->
@@ -106,6 +106,9 @@
                     <!--a small visual improvement, lets hide the first points (x = 0, x=1) to get better animations-->
                     <lvc:Axis MinValue="2"></lvc:Axis>
                 </lvc:CartesianChart.AxisX>
+                <lvc:CartesianChart.AxisY>
+                    <lvc:Axis MinValue="-0.5" MaxValue="1.5"></lvc:Axis>
+                </lvc:CartesianChart.AxisY>
             </lvc:CartesianChart>
         </Grid>
 
@@ -120,7 +123,7 @@
             <Grid.Resources>
                 <Style TargetType="lvc:LineSeries">
                     <Setter Property="StrokeThickness" Value="2"></Setter>
-                    <Setter Property="Stroke" Value="#0000FF"></Setter>
+                    <Setter Property="Stroke" Value="#FFFFFF"></Setter>
                     <Setter Property="Fill" Value="Black"></Setter>
                     <Setter Property="PointGeometrySize" Value="0"></Setter>
                     <Setter Property="LineSmoothness" Value="0.5"></Setter>
@@ -148,6 +151,9 @@
                     <!--a small visual improvement, lets hide the first points (x = 0, x=1) to get better animations-->
                     <lvc:Axis MinValue="2"></lvc:Axis>
                 </lvc:CartesianChart.AxisX>
+                <lvc:CartesianChart.AxisY>
+                    <lvc:Axis MinValue="-0.5" MaxValue="1.5"></lvc:Axis>
+                </lvc:CartesianChart.AxisY>
             </lvc:CartesianChart>
         </Grid>
 
@@ -182,7 +188,7 @@
             <TextBlock Grid.Row="0" HorizontalAlignment="Center" TextAlignment="Center" Padding="0, 10, 0, 10" Foreground="White" FontSize="18">
                 Right Arm
             </TextBlock>
-            <TextBlock Grid.Row="1" HorizontalAlignment="Center" TextAlignment="Center" Foreground="#59FFFFFF" Padding="0,0,0,10">
+            <TextBlock Name="rightText" Grid.Row="1" HorizontalAlignment="Center" TextAlignment="Center" Foreground="#59FFFFFF" Padding="0,0,0,10">
                 N/A BPM
             </TextBlock>
             <!-- minus padding means that there are no unslightly black borders turning up from hiding the axis -->
@@ -191,6 +197,9 @@
                     <!--a small visual improvement, lets hide the first points (x = 0, x=1) to get better animations-->
                     <lvc:Axis MinValue="2"></lvc:Axis>
                 </lvc:CartesianChart.AxisX>
+                <lvc:CartesianChart.AxisY>
+                    <lvc:Axis MinValue="-0.5" MaxValue="1.5"></lvc:Axis>
+                </lvc:CartesianChart.AxisY>
             </lvc:CartesianChart>
         </Grid>
 
@@ -233,6 +242,9 @@
                     <!--a small visual improvement, lets hide the first points (x = 0, x=1) to get better animations-->
                     <lvc:Axis MinValue="2"></lvc:Axis>
                 </lvc:CartesianChart.AxisX>
+                <lvc:CartesianChart.AxisY>
+                    <lvc:Axis MinValue="-0.5" MaxValue="1.5"></lvc:Axis>
+                </lvc:CartesianChart.AxisY>
             </lvc:CartesianChart>
         </Grid>
 
@@ -265,7 +277,7 @@
                 <RowDefinition/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center" FontSize="50" Name="bpmCounter" Foreground="{StaticResource MediumGreyBrush}">
+            <TextBlock Name="bpmCounterLabel" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center" FontSize="50" Foreground="{StaticResource MediumGreyBrush}">
                 N/A
             </TextBlock>
             <TextBlock Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">

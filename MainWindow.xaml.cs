@@ -12,7 +12,6 @@
     using System;
     using FFTLibrary;
 
-
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -130,7 +129,9 @@
             for (int i = 0; i < MediaPlayers; i++) {
                 players[i] = new MediaPlayer();
             }
+
         }
+
         private void InitGraphs()
         {
             LeftArmCollection = new SeriesCollection
@@ -278,6 +279,8 @@
 
         int counter = 0;
 
+        bool kick = false;
+
         private void Update(Skeleton skeleton)
         {
             for (int i = 0; i < 2; i++)
@@ -300,6 +303,16 @@
 
 
             CalculateDist(skeleton);
+
+            double armLength = CalculateArmLength(skeleton);
+
+            int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
+
+            bpmCounterLabel.Text = armHeight.ToString();
+
+            Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
+            Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
+
             /*
             counter++;
 
@@ -315,19 +328,66 @@
 
             UpdatePeaks();
 
-            CalculateBPM();
+            //CalculateBPM();
+
+            if (IsCloseTo(bpms[0].getBPM(), bpms[1].getBPM()))
+            {
+                if (bpms[0].shouldTick()) {
+                    if (kick) PlayKick();
+                    else PlayHihat();
+
+                    kick = !kick;
+                }
+            }
+            else
+            {
+                var faster = 1;
+
+                if (bpms[0].getBPM() > bpms[1].getBPM())
+                {
+                    faster = 0;
+                }
+                for (int i = 0; i < 2; i++)
+                {
+                    if (bpms[i].shouldTick())
+                    {
+                        if (faster == i) PlayHihat();
+                        else PlayKick();
+                    }
+                }
+            }
         }
 
         private void CalculateBPM() {
             for (int i = 0; i < 2; i++) {
-                double pCounter = 0;
+                int lastTime = -1;
+                double dif = -1;
                 foreach (Peak p in Peaks[i]) {
-                    pCounter++;
+                    if (lastTime == -1) {
+                        lastTime = p.getTimeStamp();
+                    }
+                    else {
+                        if (dif == -1)
+                        {
+                            dif = p.getTimeStamp() - lastTime;
+                        }
+                        else {
+                            dif += p.getTimeStamp() - lastTime;
+                            dif /= 2; //waits th more recent values more heavily
+                        }
+                        lastTime = p.getTimeStamp();
+                    }
                 }
-                double bpm = NumberOfPoints / RefreshRate; //number of seconds
-                bpm = pCounter / bpm; //number of peaks a second
-                bpm *= 60; //number of peaks a minute
-                bpms[i].update(bpm);
+                double bpm;
+                if (dif != -1)
+                {
+                    bpm = dif / RefreshRate; //number of seconds
+                    bpm *= 60;
+                }
+                else {
+                    bpm = 0;
+                }
+                bpms[i].Update(bpm);
             }
 
             if (IsCloseTo(bpms[0].getBPM(), bpms[1].getBPM())) {
@@ -422,6 +482,31 @@
             double dist = Math.Abs(joint0.Position.X - joint1.Position.X) + Math.Abs(joint0.Position.Y - joint1.Position.Y) + Math.Abs(joint0.Position.Z - joint1.Position.Z);
             return dist;
         }
+
+        private double CalculateArmLength(Skeleton skeleton) {
+            double dist;
+
+            Joint j1 = skeleton.Joints[JointType.WristLeft];
+            Joint j2 = skeleton.Joints[JointType.ElbowLeft];
+            Joint j3 = skeleton.Joints[JointType.ShoulderLeft];
+
+            dist = Math.Sqrt(Math.Pow((j1.Position.X - j2.Position.X), 2) + Math.Pow((j1.Position.Y - j2.Position.Y), 2) + Math.Pow((j1.Position.Z - j2.Position.Z), 2));
+            dist += Math.Sqrt(Math.Pow((j2.Position.X - j3.Position.X), 2) + Math.Pow((j2.Position.Y - j3.Position.Y), 2) + Math.Pow((j2.Position.Z - j3.Position.Z), 2));
+
+            return dist;
+        }
+
+        private int CalculateJointHeight(Joint joint, Joint reference, double armLength) {
+            //Console.WriteLine("Arm lenght: " + armLength);
+            armLength *= 0.9;
+            var modifier = 64 / armLength;
+            //Console.WriteLine("Modifier: " + modifier);
+            var thing = 64 + modifier*(joint.Position.Y - reference.Position.Y);
+            if (thing > 128) return 128;
+            if (thing < 0) return 0;
+            return (int)(thing);
+        }
+
         /// <summary>
         /// Event handler for Kinect sensor's SkeletonFrameReady event
         /// </summary>
@@ -597,7 +682,10 @@
             PrintComplex(nums);
 
             //PrintComplex(nums);
-            PlayHihat();
+            //PlayHihat();
+            //MIDINotes.PlayNote(0, 127, 60);
+            MIDINotes mn = new MIDINotes();
+            mn.PlayNote(0, 127, 60);
 
             if (sensor != null)
             {
@@ -674,5 +762,4 @@
         }
 
     }
-
 }

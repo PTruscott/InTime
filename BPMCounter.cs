@@ -8,8 +8,9 @@ namespace InTime
     {
         private TextBlock text;
         private List<double> bpms;
-        private int maxBpms = 30;
+        private int maxBpms = 4;
         private int bpm;
+        private int timeSinceBeat = 0;
 
         public BPMCounter(TextBlock text)
         {
@@ -19,8 +20,9 @@ namespace InTime
             bpms = new List<double>();
         }
 
-        public void update(double bpm)
+        public void Update(double bpm)
         {
+            timeSinceBeat++;
             bpms.Add(bpm);
             if (bpms.Count > maxBpms)
             {
@@ -39,5 +41,17 @@ namespace InTime
         public int getBPM() {
             return bpm;
         }
+
+        public Boolean shouldTick() {
+            //Console.WriteLine(timeSinceBeat);
+            if (bpm == 0) bpm = 1;
+            if (timeSinceBeat >= ((60.0/((double)bpm))*30)) {
+                timeSinceBeat = 0;
+                return true;
+            }
+            return false;
+        }
     }
 }
+
+

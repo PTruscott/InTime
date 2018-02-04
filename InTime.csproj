@@ -103,6 +103,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MIDINotes.cs" />
     <Compile Include="Peak.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>

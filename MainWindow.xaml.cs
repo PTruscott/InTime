@@ -10,7 +10,6 @@
     using LiveCharts.Wpf;
     using System.ComponentModel;
     using System;
-    using FFTLibrary;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -290,9 +289,6 @@
 
             //bpmCounterLabel.Text = armHeight.ToString();
 
-            //Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
-            //Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
-
             /*
             counter++;
 
@@ -378,48 +374,6 @@
             //Console.WriteLine("BPM: "+bpm);
             bpmCounterLabel.Text = ((int)(bpm)).ToString();
         }
-
-        /*
-        private void CalculateBPM() {
-            for (int i = 0; i < 2; i++) {
-                int lastTime = -1;
-                double dif = -1;
-                foreach (Peak p in Peaks[i]) {
-                    if (lastTime == -1) {
-                        lastTime = p.getTimeStamp();
-                    }
-                    else {
-                        if (dif == -1)
-                        {
-                            dif = p.getTimeStamp() - lastTime;
-                        }
-                        else {
-                            dif += p.getTimeStamp() - lastTime;
-                            dif /= 2; //waits th more recent values more heavily
-                        }
-                        lastTime = p.getTimeStamp();
-                    }
-                }
-                double bpm;
-                if (dif != -1)
-                {
-                    bpm = dif / RefreshRate; //number of seconds
-                    bpm *= 60;
-                }
-                else {
-                    bpm = 0;
-                }
-                bpms[i].Update(bpm);
-            }
-            
-
-            if (IsCloseTo(bpms[0].getBPM(), bpms[1].getBPM())) {
-                bpmCounterLabel.Text = "" + (bpms[0].getBPM() + bpms[1].getBPM()) / 2;
-            }
-            else {
-                bpmCounterLabel.Text = "" + Math.Max(bpms[0].getBPM(), bpms[1].getBPM());
-            }
-        } */
 
         private Boolean IsCloseTo(int num1, int num2) {
             int range = 10;
@@ -694,15 +648,6 @@
         /// <param name="e">event arguments</param>
         private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
         {
-            double[] array = new double[] { 0, 0, 0, 0, 1, 0, 0, 0, 0 };
-            Complex[] nums1 = Complex.DFT(array);
-            PrintComplex(nums1);
-            AForge.Math.Complex[] nums = new AForge.Math.Complex[] { new AForge.Math.Complex(0, 0), new AForge.Math.Complex(0, 0), new AForge.Math.Complex(0, 0), new AForge.Math.Complex(2, 0), new AForge.Math.Complex(1, 0) };
-            AForge.Math.FourierTransform.DFT(nums, AForge.Math.FourierTransform.Direction.Forward);
-            PrintComplex(nums);
-
-            //PrintComplex(nums);
-            //PlayHihat();
             //MIDINotes.PlayNote(0, 127, 60);
             MIDINotes mn = new MIDINotes();
             mn.PlayNote(0, 127, 60);
@@ -719,46 +664,6 @@
                 }
             }
         }
-
-        private void PrintComplex(Complex[] nums)
-        {
-            String s = "[";
-
-            for (int i = 0; i < nums.Length; i++)
-            {
-                if (i != 0) s += ", ";
-                var num = Math.Sqrt(nums[i].re * nums[i].re + nums[i].im * nums[i].im);
-                if (num < 0.01) num = 0;
-                s += num;
-
-                LeftLegCollection[0].Values.RemoveAt(0);
-                LeftLegCollection[0].Values.Add(new ObservableValue(num));
-            }
-
-            s += "]";
-            Console.WriteLine(s);
-        }
-
-        private void PrintComplex(AForge.Math.Complex[] nums)
-        {
-            String s = "[";
-
-            for (int i = 0; i < nums.Length; i++)
-            {
-                if (i != 0) s += ", ";
-                var num = Math.Sqrt(nums[i].Re * nums[i].Re + nums[i].Im * nums[i].Im);
-                if (num < 0.01) num = 0;
-                s += num;
-
-                LeftLegCollection[0].Values.RemoveAt(0);
-                LeftLegCollection[0].Values.Add(new ObservableValue(num));
-            }
-
-            s += "]";
-            Console.WriteLine(s);
-
-        }
-
 
         public void PlayHihat()
         {

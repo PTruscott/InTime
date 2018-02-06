@@ -93,7 +93,7 @@
         private int RefreshRate = 30;
 
         private System.Collections.Generic.List<double>[] Points;
-        private BPMCounter[] bpms;
+        private BPMCounter bpms;
 
         MediaPlayer[] players;
         private System.Collections.Generic.List<Peak> leftArmPeaks;
@@ -120,7 +120,7 @@
 
             DataContext = this;
 
-            bpms = new BPMCounter[] { new BPMCounter(rightText), new BPMCounter(leftText) };
+            bpms = new BPMCounter(leftText);
 
             players = new MediaPlayer[MediaPlayers];
 
@@ -309,33 +309,6 @@
             }
 
             CalculateBPM();
-
-            if (IsCloseTo(bpms[0].getBPM(), bpms[1].getBPM()))
-            {
-                if (bpms[0].shouldTick()) {
-                    if (kick) PlayKick();
-                    else PlayHihat();
-
-                    kick = !kick;
-                }
-            }
-            else
-            {
-                var faster = 1;
-
-                if (bpms[0].getBPM() > bpms[1].getBPM())
-                {
-                    faster = 0;
-                }
-                for (int i = 0; i < 2; i++)
-                {
-                    if (bpms[i].shouldTick())
-                    {
-                        if (faster == i) PlayHihat();
-                        else PlayKick();
-                    }
-                }
-            }
         }
 
         private void CalculateBPM() {
@@ -370,7 +343,7 @@
             dif /= (leftArmPeaks.Count - 1);
             double bpm = dif / RefreshRate;
             bpm = 60/bpm;
-            bpms[0].Update((int)bpm);
+            bpms.Update((int)bpm);
             //Console.WriteLine("BPM: "+bpm);
             bpmCounterLabel.Text = ((int)(bpm)).ToString();
         }

@@ -8,7 +8,7 @@ namespace InTime
     {
         private TextBlock text;
         private List<double> bpms;
-        private int maxBpms = 4;
+        private int maxBpms = 1;
         private int bpm;
         private int timeSinceBeat = 0;
 

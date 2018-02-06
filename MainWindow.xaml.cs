@@ -93,11 +93,11 @@
         private int NumberOfPoints = 300;
         private int RefreshRate = 30;
 
-        private System.Collections.Generic.List<Peak>[] Peaks;
         private System.Collections.Generic.List<double>[] Points;
         private BPMCounter[] bpms;
 
         MediaPlayer[] players;
+        private System.Collections.Generic.List<Peak> leftArmPeaks;
         int MediaPlayers = 10;
 
         /// <summary>
@@ -106,10 +106,9 @@
         public MainWindow()
         {
             Points = new System.Collections.Generic.List<double>[4];
-            Peaks = new System.Collections.Generic.List<Peak>[4];
+            leftArmPeaks = new System.Collections.Generic.List<Peak>();
             for (int i = 0; i < Points.Length; i++)
             {
-                Peaks[i] = new System.Collections.Generic.List<Peak>();
                 Points[i] = new System.Collections.Generic.List<double>();
                 for (int j = 0; j < NumberOfPoints; j++)
                 {
@@ -283,32 +282,13 @@
 
         private void Update(Skeleton skeleton)
         {
-            for (int i = 0; i < 2; i++)
-            {
-                Boolean remove = false;
-                foreach (Peak p in Peaks[i])
-                {
-                    p.timeStep();
-                    if (p.getTimeStamp() < 0)
-                    {
-                        remove = true;
-                        //Console.WriteLine(p.getTimeStamp());
-                    }
-                }
-                if (remove)
-                {
-                    Peaks[i].RemoveAt(0);
-                }
-            }
-
-
             CalculateDist(skeleton);
 
             double armLength = CalculateArmLength(skeleton);
 
             int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
-            bpmCounterLabel.Text = armHeight.ToString();
+            //bpmCounterLabel.Text = armHeight.ToString();
 
             Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
             Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
@@ -328,7 +308,7 @@
 
             UpdatePeaks();
 
-            //CalculateBPM();
+            CalculateBPM();
 
             if (IsCloseTo(bpms[0].getBPM(), bpms[1].getBPM()))
             {
@@ -358,6 +338,41 @@
             }
         }
 
+        private void CalculateBPM() {
+            while (leftArmPeaks.Count > 5)
+            {
+                leftArmPeaks.RemoveAt(0);
+            }
+            int lastTime = -1;
+            double dif = -1;
+            foreach (Peak p in leftArmPeaks)
+            {
+                if (lastTime == -1)
+                {
+                    lastTime = p.getTimeStamp();
+                }
+                else
+                {
+                    if (dif == -1)
+                    {
+                        dif = p.getTimeStamp() - lastTime;
+                    }
+                    else
+                    {
+                        dif += p.getTimeStamp() - lastTime;
+                    }
+                    lastTime = p.getTimeStamp();
+                }
+            }
+            dif /= (leftArmPeaks.Count - 1);
+            double bpm = dif / RefreshRate;
+            bpm *= 60;
+            bpms[0].Update(bpm);
+            Console.WriteLine(bpm);
+            bpmCounterLabel.Text = bpm.ToString();
+        }
+
+        /*
         private void CalculateBPM() {
             for (int i = 0; i < 2; i++) {
                 int lastTime = -1;
@@ -389,6 +404,7 @@
                 }
                 bpms[i].Update(bpm);
             }
+            
 
             if (IsCloseTo(bpms[0].getBPM(), bpms[1].getBPM())) {
                 bpmCounterLabel.Text = "" + (bpms[0].getBPM() + bpms[1].getBPM()) / 2;
@@ -396,7 +412,7 @@
             else {
                 bpmCounterLabel.Text = "" + Math.Max(bpms[0].getBPM(), bpms[1].getBPM());
             }
-        }
+        } */
 
         private Boolean IsCloseTo(int num1, int num2) {
             int range = 10;
@@ -417,45 +433,42 @@
 
         private void UpdatePeaks()
         {
-            for (int i = 0; i < 2; i++)
-            {
-                double[] Values = Points[i].ToArray();
-                //check if there is a peak
-                //if on a downward slope, must have previously been a peak
-                double point1 = Values[NumberOfPoints - 1];
-                double point2 = Values[NumberOfPoints - 2];
-                double point3 = Values[NumberOfPoints - 3];
+            double[] Values = Points[1].ToArray();
+            //check if there is a peak
+            //if on a downward slope, must have previously been a peak
+            double point1 = Values[NumberOfPoints - 1];
+            double point2 = Values[NumberOfPoints - 2];
+            double point3 = Values[NumberOfPoints - 3];
 
-                if (point1 < point2)
+            if (point1 < point2)
+            {
+                //if the third value is less than the second the second must be a peak
+                //wooo magic number to avoid tremours
+                if (point3 < point2 && ((leftArmPeaks.Count == 0 && point2 > 0.1) || point2 > leftArmPeaks[leftArmPeaks.Count - 1].getRDitch() + 0.2))
                 {
-                    //if the third value is less than the second the second must be a peak
-                    //wooo magic number to avoid tremours
-                    if (point3 < point2 && ((Peaks[i].Count == 0 && point2 > 0.1) || point2 > ((Peak)Peaks[i][Peaks[i].Count - 1]).getRDitch() + 0.2))
+                    //first peak, so lDitch is 0
+                    if (leftArmPeaks.Count == 0)
                     {
-                        //first peak, so lDitch is 0
-                        if (Peaks[i].Count == 0)
-                        {
-                            Peaks[i].Add(new Peak(0, point1, point2, NumberOfPoints));
-                        }
-                        else
-                        {
-                            //the lditch of the new peak is the rditch of the previous
-                            Peaks[i].Add(new Peak(((Peak)Peaks[i][Peaks[i].Count - 1]).getRDitch(), point1, point2, NumberOfPoints));
-                        }
-                        /*
-                        var p1 = new MediaPlayer();
-                        p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
-                        p1.Play(); 
-                        Console.WriteLine("Left arm peak! Height: " + ((Peak)Peaks[i][Peaks[i].Count - 1]).getSize());
-                        */
+                        leftArmPeaks.Add(new Peak(0, point1, point2, NumberOfPoints));
                     }
-                    //if not, the last peak is more pronouced
                     else
                     {
-                        if (Peaks[i].Count > 0)
-                        {
-                            ((Peak)Peaks[i][Peaks[i].Count - 1]).setRDitch(point1);
-                        }
+                        //the lditch of the new peak is the rditch of the previous
+                        leftArmPeaks.Add(new Peak(leftArmPeaks[leftArmPeaks.Count - 1].getRDitch(), point1, point2, NumberOfPoints));
+                    }
+                    /*
+                    var p1 = new MediaPlayer();
+                    p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
+                    p1.Play(); 
+                    Console.WriteLine("Left arm peak! Height: " + ((Peak)Peaks[i][Peaks[i].Count - 1]).getSize());
+                    */
+                }
+                //if not, the last peak is more pronouced
+                else
+                {
+                    if (leftArmPeaks.Count > 0)
+                    {
+                        (leftArmPeaks[leftArmPeaks.Count - 1]).setRDitch(point1);
                     }
                 }
             }

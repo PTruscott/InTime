@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
         xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
-        Title="InTime" Height="900" Width="1600" Loaded="WindowLoaded" Closing="WindowClosing"
+        Title="InTime" Height="720" Width="1280" Loaded="WindowLoaded" Closing="WindowClosing"
         Background="#E9E9E9">
 
     <!-- Used for the checkbox if the dancer is seated or not.  If is seated, uses a different

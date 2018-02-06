@@ -290,8 +290,8 @@
 
             //bpmCounterLabel.Text = armHeight.ToString();
 
-            Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
-            Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
+            //Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
+            //Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
 
             /*
             counter++;
@@ -307,6 +307,10 @@
             UpdateGraphs();
 
             UpdatePeaks();
+
+            foreach (Peak p in leftArmPeaks) {
+                p.timeStep();
+            }
 
             CalculateBPM();
 
@@ -343,6 +347,7 @@
             {
                 leftArmPeaks.RemoveAt(0);
             }
+            //Console.WriteLine("Peak Count: "+leftArmPeaks.Count);
             int lastTime = -1;
             double dif = -1;
             foreach (Peak p in leftArmPeaks)
@@ -362,14 +367,16 @@
                         dif += p.getTimeStamp() - lastTime;
                     }
                     lastTime = p.getTimeStamp();
+                    //Console.WriteLine("Last Time: " + lastTime);
                 }
             }
+            //Console.WriteLine("Dif: " + dif);
             dif /= (leftArmPeaks.Count - 1);
             double bpm = dif / RefreshRate;
-            bpm *= 60;
-            bpms[0].Update(bpm);
-            Console.WriteLine(bpm);
-            bpmCounterLabel.Text = bpm.ToString();
+            bpm = 60/bpm;
+            bpms[0].Update((int)bpm);
+            //Console.WriteLine("BPM: "+bpm);
+            bpmCounterLabel.Text = ((int)(bpm)).ToString();
         }
 
         /*

@@ -89,15 +89,36 @@
         public SeriesCollection LeftLegCollection { get; set; }
         public SeriesCollection RightLegCollection { get; set; }
 
+        /// <summary>
+        /// the number of points the graphs display
+        /// </summary>
         private int NumberOfPoints = 300;
+
+        /// <summary>
+        /// The refresh rate of the camera
+        /// </summary>
         private int RefreshRate = 30;
 
         private System.Collections.Generic.List<double>[] Points;
+        /// <summary>
+        /// the bpm counter
+        /// </summary>
         private BPMCounter bpms;
 
         MediaPlayer[] players;
+        /// <summary>
+        /// list of the peaks of the left arm to calculate bpm with if needed
+        /// </summary>
         private System.Collections.Generic.List<Peak> leftArmPeaks;
         int MediaPlayers = 10;
+
+        private Boolean isCalculatingBPM = false;
+
+        /// <summary>
+        /// Variables for calculating if a leg had been stomped before
+        /// </summary>
+        bool leftLegWasRaised = false;
+        bool rightLegWasRaised = false;
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -302,13 +323,66 @@
 
             UpdateGraphs();
 
-            UpdatePeaks();
-
-            foreach (Peak p in leftArmPeaks) {
+            foreach (Peak p in leftArmPeaks)
+            {
                 p.timeStep();
             }
 
-            CalculateBPM();
+            if (legStomp(true, skeleton))
+            {
+                if (isCalculatingBPM) bpmCalculatingLabel.Text = "BPM";
+                else bpmCalculatingLabel.Text = "BPM (Calculating...)";
+                isCalculatingBPM = !isCalculatingBPM;
+            }
+
+            if (isCalculatingBPM)
+            {
+                UpdatePeaks();
+
+                CalculateBPM();
+            }
+        }
+
+        private Boolean legStomp(Boolean left, Skeleton skeleton) {
+            //if the left leg is raised
+            if (legRaised(true, skeleton))
+            {
+                //mark it as raised
+                leftLegWasRaised = true;
+                //can't be a stomp if it's still in the air
+                return false;
+            }
+            //if it was raised and is no longer
+            else if (leftLegWasRaised)
+            {
+                //mark it as no longer raised
+                leftLegWasRaised = false;
+                //if checking the left leg, then it has stomped
+                if (left) return true;
+            }
+            //if the right leg is raised
+            if (legRaised(false, skeleton))
+            {
+                //mark as raised
+                rightLegWasRaised = true;
+                //can't be a stomp if still raised
+                return false;
+            }
+            //if it was raised and is no longer
+            else if (rightLegWasRaised)
+            {
+                //mark it as no longer raised
+                rightLegWasRaised = false;
+                //if checking the right leg, then it has stomped
+                if (!left) return true;
+            }
+            return false;
+        }
+
+        private Boolean legRaised(Boolean left, Skeleton skeleton) {
+            double legLength = CalculateLegLength(skeleton);
+            if ((skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y) < legLength * 0.75) return true;
+            return false;
         }
 
         private void CalculateBPM() {
@@ -431,12 +505,24 @@
         }
 
         private double CalculateArmLength(Skeleton skeleton) {
-            double dist;
-
             Joint j1 = skeleton.Joints[JointType.WristLeft];
             Joint j2 = skeleton.Joints[JointType.ElbowLeft];
             Joint j3 = skeleton.Joints[JointType.ShoulderLeft];
 
+            return CalculateLimbLength(j1, j2, j3);
+        }
+
+        private double CalculateLegLength(Skeleton skeleton) {
+            Joint j1 = skeleton.Joints[JointType.AnkleLeft];
+            Joint j2 = skeleton.Joints[JointType.KneeLeft];
+            Joint j3 = skeleton.Joints[JointType.HipLeft];
+
+            return CalculateLimbLength(j1, j2, j3);
+        }
+
+        private double CalculateLimbLength(Joint j1, Joint j2, Joint j3) {
+            double dist;
+        
             dist = Math.Sqrt(Math.Pow((j1.Position.X - j2.Position.X), 2) + Math.Pow((j1.Position.Y - j2.Position.Y), 2) + Math.Pow((j1.Position.Z - j2.Position.Z), 2));
             dist += Math.Sqrt(Math.Pow((j2.Position.X - j3.Position.X), 2) + Math.Pow((j2.Position.Y - j3.Position.Y), 2) + Math.Pow((j2.Position.Z - j3.Position.Z), 2));
 

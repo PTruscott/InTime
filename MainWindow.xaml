@@ -280,7 +280,7 @@
             <TextBlock Name="bpmCounterLabel" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center" FontSize="50" Foreground="{StaticResource MediumGreyBrush}">
                 N/A
             </TextBlock>
-            <TextBlock Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
+            <TextBlock Name="bpmCalculatingLabel" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
                 BPM
             </TextBlock>
         </Grid>

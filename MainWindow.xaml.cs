@@ -12,6 +12,8 @@
     using System;
     using System.Threading.Tasks;
     using System.Runtime.InteropServices;
+    using System.Collections.Generic;
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -100,7 +102,7 @@
         /// </summary>
         private int RefreshRate = 30;
 
-        private System.Collections.Generic.List<double>[] Points;
+        private List<double>[] Points;
         /// <summary>
         /// the bpm counter
         /// </summary>
@@ -110,7 +112,7 @@
         /// <summary>
         /// list of the peaks of the left arm to calculate bpm with if needed
         /// </summary>
-        private System.Collections.Generic.List<Peak> leftArmPeaks;
+        private List<Peak> leftArmPeaks;
         int MediaPlayers = 10;
 
         private Boolean isCalculatingBPM = false;
@@ -120,6 +122,14 @@
         /// </summary>
         bool leftLegWasRaised = false;
         bool rightLegWasRaised = false;
+
+        /// <summary>
+        /// a series of variables to record loops
+        /// </summary>
+        int notesToRecord = 0;
+        int maxRecordedNotes = 16;
+        private System.Collections.Generic.List<System.Collections.Generic.List<int[]>> notes;
+        int syncCount = 0;
 
         private delegate void MidiCallBack(int handle, int msg,
            int instance, int param1, int param2);
@@ -141,6 +151,7 @@
         {
             midiOutOpen(ref handle, 0, null, 0, 0);
             Points = new System.Collections.Generic.List<double>[4];
+            notes = new System.Collections.Generic.List<System.Collections.Generic.List<int[]>>();
             leftArmPeaks = new System.Collections.Generic.List<Peak>();
             for (int i = 0; i < Points.Length; i++)
             {
@@ -335,11 +346,19 @@
                 p.timeStep();
             }
 
-            if (legStomp(true, skeleton))
+            if (LegStomp(true, skeleton))
             {
                 if (isCalculatingBPM) bpmCalculatingLabel.Text = "BPM";
                 else bpmCalculatingLabel.Text = "BPM (Calculating...)";
                 isCalculatingBPM = !isCalculatingBPM;
+                Console.WriteLine("left leg stomp");
+            }
+            else if (LegStomp(false, skeleton)) {
+                Console.WriteLine("Right leg stomp");
+                //if currently recording and new record message comes in then wipe and start again
+                if (isRecording()) notes.RemoveAt(notes.Count - 1);
+                notes.Add(new List<int[]>());
+                notesToRecord = maxRecordedNotes+1;
             }
 
             if (isCalculatingBPM)
@@ -355,50 +374,106 @@
                 int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
                 PlayNote(handle, 30, armHeight, 91);
+                if (isRecording())
+                {
+                    notes[notes.Count - 1].Add(new int[2] { armHeight, 91 });
+                }
+                if (notes.Count > 0) {
+                    if (notesToRecord == 0)
+                    {
+                        foreach (List<int[]> noteList in notes)
+                        {
+                            playRecordedNote(handle, noteList, syncCount);
+                        }
+                    }
+                    else {
+                        for (int i = 0; i < notes.Count - 2; i++) {
+                            playRecordedNote(handle, notes[i], syncCount);
+                        }
+                    }
+                   
+                    syncCount++;
+                    if (syncCount > notes[0].Count - 1) syncCount = 0;
+                }
 
-                if (bpm.shouldTick()) PlayNote(handle, 30, 39, 99);
+                if (bpm.shouldTick())
+                {
+                    PlayNote(handle, 30, 39, 99);
+                    if (notesToRecord > 0) notesToRecord--;
+                    if (isRecording())
+                    {
+                        rightText.Text = "Recording";
+                    }
+                    else {
+                        rightText.Text = "Not recording";
+                    }
+                }
             }
         }
 
-        private Boolean legStomp(Boolean left, Skeleton skeleton) {
-            //if the left leg is raised
-            if (legRaised(true, skeleton))
+        private void playRecordedNote(int handle, List<int[]> noteList, int index) {
+            Console.WriteLine("Notelist.count: " + noteList.Count + " synccount: " + index);
+            PlayNote(handle, 30, noteList[index][0], noteList[index][1]);
+        }
+
+        private Boolean isRecording() {
+            return notesToRecord > 0 && notesToRecord <= maxRecordedNotes;
+        }
+
+        private Boolean LegStomp(Boolean left, Skeleton skeleton) {
+            if (left)
             {
-                //mark it as raised
-                leftLegWasRaised = true;
-                //can't be a stomp if it's still in the air
-                return false;
+                //if the left leg is raised
+                if (legRaised(true, skeleton))
+                {
+                    //mark it as raised
+                    leftLegWasRaised = true;
+                    //can't be a stomp if it's still in the air
+                    return false;
+                }
+                //if it was raised and is no longer
+                else if (leftLegWasRaised)
+                {
+                    //mark it as no longer raised
+                    leftLegWasRaised = false;
+                    //if checking the left leg, then it has stomped
+                    return true;
+                }
             }
-            //if it was raised and is no longer
-            else if (leftLegWasRaised)
+            else
             {
-                //mark it as no longer raised
-                leftLegWasRaised = false;
-                //if checking the left leg, then it has stomped
-                if (left) return true;
-            }
-            //if the right leg is raised
-            if (legRaised(false, skeleton))
-            {
-                //mark as raised
-                rightLegWasRaised = true;
-                //can't be a stomp if still raised
-                return false;
-            }
-            //if it was raised and is no longer
-            else if (rightLegWasRaised)
-            {
-                //mark it as no longer raised
-                rightLegWasRaised = false;
-                //if checking the right leg, then it has stomped
-                if (!left) return true;
+                //Console.WriteLine("gets past left leg");
+                //if the right leg is raised
+                if (legRaised(false, skeleton))
+                {
+                    //mark as raised
+                    rightLegWasRaised = true;
+                    //can't be a stomp if still raised
+                    return false;
+                }
+                //if it was raised and is no longer
+                else if (rightLegWasRaised)
+                {
+                    //Console.WriteLine("right leg stomped");
+                    //mark it as no longer raised
+                    rightLegWasRaised = false;
+                    //if checking the right leg, then it has stomped
+                    return true;
+                }
             }
             return false;
         }
 
         private Boolean legRaised(Boolean left, Skeleton skeleton) {
             double legLength = CalculateLegLength(skeleton);
-            if ((skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y) < legLength * 0.75) return true;
+            if (left)
+            {
+                if ((skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y) < legLength * 0.75) return true;
+            }
+            else
+            {
+                if ((skeleton.Joints[JointType.HipRight].Position.Y - skeleton.Joints[JointType.AnkleRight].Position.Y) < legLength * 0.75) return true;
+            }
             return false;
         }
 

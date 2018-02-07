@@ -47,7 +47,6 @@ namespace InTime
             if (bpm == 0) bpm = 1;
             if (timeSinceBeat >= ((60.0/bpm) *30)) {
                 timeSinceBeat = 0;
-                Console.WriteLine("Should tick");
                 return true;
             }
             return false;

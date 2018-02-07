@@ -22,7 +22,6 @@ namespace InTime
 
         public void Update(double bpm)
         {
-            timeSinceBeat++;
             bpms.Add(bpm);
             if (bpms.Count > maxBpms)
             {
@@ -44,9 +43,11 @@ namespace InTime
 
         public Boolean shouldTick() {
             //Console.WriteLine(timeSinceBeat);
+            timeSinceBeat++;
             if (bpm == 0) bpm = 1;
-            if (timeSinceBeat >= ((60.0/((double)bpm))*30)) {
+            if (timeSinceBeat >= ((60.0/bpm) *30)) {
                 timeSinceBeat = 0;
+                Console.WriteLine("Should tick");
                 return true;
             }
             return false;

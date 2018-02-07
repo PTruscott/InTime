@@ -104,7 +104,7 @@
         /// <summary>
         /// the bpm counter
         /// </summary>
-        private BPMCounter bpms;
+        private BPMCounter bpm;
 
         MediaPlayer[] players;
         /// <summary>
@@ -156,7 +156,7 @@
 
             DataContext = this;
 
-            bpms = new BPMCounter(leftText);
+            bpm = new BPMCounter(leftText);
 
             players = new MediaPlayer[MediaPlayers];
 
@@ -165,13 +165,14 @@
             }
         }
 
-        private void PlayNote(int handle, int vel, int note) {
+        private void PlayNote(int handle, int vel, int note, int instrument) {
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
             string velHex = vel.ToString("X");
             string noteHex = note.ToString("X");
+            string insHex = instrument.ToString();
             //builds into a hex string
-            string s = string.Format("0x00{0}{1}91", velHex, noteHex);
+            string s = string.Format("0x00{0}{1}{2}", velHex, noteHex, insHex);
             //converts to an integer
             int value = (int)new Int32Converter().ConvertFromString(s);
             //plays the note
@@ -327,19 +328,6 @@
         {
             CalculateDist(skeleton);
 
-            //bpmCounterLabel.Text = armHeight.ToString();
-
-            /*
-            counter++;
-
-            if (counter > 300)
-            {
-                Complex[] nums = Complex.DFT(Points[0].ToArray());
-                PrintComplex(nums);
-                counter = 0;
-            }
-            */
-
             UpdateGraphs();
 
             foreach (Peak p in leftArmPeaks)
@@ -366,7 +354,9 @@
 
                 int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
-                PlayNote(handle, 30, armHeight);
+                PlayNote(handle, 30, armHeight, 91);
+
+                if (bpm.shouldTick()) PlayNote(handle, 30, 39, 99);
             }
         }
 
@@ -442,11 +432,11 @@
             }
             //Console.WriteLine("Dif: " + dif);
             dif /= (leftArmPeaks.Count - 1);
-            double bpm = dif / RefreshRate;
-            bpm = 60/bpm;
-            bpms.Update((int)bpm);
+            double bpmNum = dif / RefreshRate;
+            bpmNum = 60/bpmNum;
+            bpm.Update((int)bpmNum);
             //Console.WriteLine("BPM: "+bpm);
-            bpmCounterLabel.Text = ((int)(bpm)).ToString();
+            bpmCounterLabel.Text = ((int)(bpmNum)).ToString();
         }
 
         private Boolean IsCloseTo(int num1, int num2) {
@@ -734,9 +724,6 @@
         /// <param name="e">event arguments</param>
         private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
         {
-            //MIDINotes.PlayNote(0, 127, 60);
-            //MIDINotes mn = new MIDINotes();
-            Task.Factory.StartNew(() => MIDINotes.PlayNote(0, 127, 60));
 
             if (sensor != null)
             {

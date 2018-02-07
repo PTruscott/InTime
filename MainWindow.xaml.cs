@@ -10,7 +10,8 @@
     using LiveCharts.Wpf;
     using System.ComponentModel;
     using System;
-
+    using System.Threading.Tasks;
+    using System.Runtime.InteropServices;
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -120,11 +121,25 @@
         bool leftLegWasRaised = false;
         bool rightLegWasRaised = false;
 
+        private delegate void MidiCallBack(int handle, int msg,
+           int instance, int param1, int param2);
+
+        [DllImport("winmm.dll")]
+        private static extern int midiOutOpen(ref int handle,
+           int deviceID, MidiCallBack proc, int instance, int flags);
+
+        [DllImport("winmm.dll")]
+        private static extern int midiOutShortMsg(int handle,
+           int message);
+
+        int handle = 0;
+
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
         public MainWindow()
         {
+            midiOutOpen(ref handle, 0, null, 0, 0);
             Points = new System.Collections.Generic.List<double>[4];
             leftArmPeaks = new System.Collections.Generic.List<Peak>();
             for (int i = 0; i < Points.Length; i++)
@@ -148,7 +163,19 @@
             for (int i = 0; i < MediaPlayers; i++) {
                 players[i] = new MediaPlayer();
             }
+        }
 
+        private void PlayNote(int handle, int vel, int note) {
+            //midiOutOpen(ref handle, 0, null, 0, 0);
+            //converts the user input to hex
+            string velHex = vel.ToString("X");
+            string noteHex = note.ToString("X");
+            //builds into a hex string
+            string s = string.Format("0x00{0}{1}91", velHex, noteHex);
+            //converts to an integer
+            int value = (int)new Int32Converter().ConvertFromString(s);
+            //plays the note
+            midiOutShortMsg(handle, value);
         }
 
         private void InitGraphs()
@@ -296,17 +323,9 @@
             }
         }
 
-        int counter = 0;
-
-        bool kick = false;
-
         private void Update(Skeleton skeleton)
         {
             CalculateDist(skeleton);
-
-            double armLength = CalculateArmLength(skeleton);
-
-            int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
             //bpmCounterLabel.Text = armHeight.ToString();
 
@@ -340,6 +359,14 @@
                 UpdatePeaks();
 
                 CalculateBPM();
+            }
+            else
+            {
+                double armLength = CalculateArmLength(skeleton);
+
+                int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
+
+                PlayNote(handle, 30, armHeight);
             }
         }
 
@@ -708,8 +735,8 @@
         private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
         {
             //MIDINotes.PlayNote(0, 127, 60);
-            MIDINotes mn = new MIDINotes();
-            mn.PlayNote(0, 127, 60);
+            //MIDINotes mn = new MIDINotes();
+            Task.Factory.StartNew(() => MIDINotes.PlayNote(0, 127, 60));
 
             if (sensor != null)
             {

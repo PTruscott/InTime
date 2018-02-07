@@ -53,7 +53,6 @@ namespace InTime
         private delegate void MidiCallBack(int handle, int msg,
            int instance, int param1, int param2);
 
-        private System.Int32 res;
 
         static string Mci(string command)
         {
@@ -62,8 +61,9 @@ namespace InTime
             return reply.ToString();
         }
 
-        public void PlayNote(int handle, int vel, int note)
+        public static void PlayNote(int handle, int vel, int note)
         {
+            //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
             string velHex = vel.ToString("X");
             string noteHex = note.ToString("X");
@@ -73,16 +73,18 @@ namespace InTime
             int value = (int)new System.ComponentModel.Int32Converter().ConvertFromString(s);
             //plays the note
             midiOutShortMsg(handle, value);
+            //System.Threading.Thread.Sleep(5000);
+            //midiOutClose(handle);
         }
 
         public MIDINotes() {
-            int handle = 0;
-            var numDevs = midiOutGetNumDevs();
-            MidiOutCaps myCaps = new MidiOutCaps();
-            var r = midiOutGetDevCaps(0, ref myCaps,
-               (UInt32)Marshal.SizeOf(myCaps));
-            r = midiOutOpen(ref handle, 0, null, 0, 0);
-            res = r;
+            //int handle = 0;
+            //var numDevs = midiOutGetNumDevs();
+            //MidiOutCaps myCaps = new MidiOutCaps();
+            //var r = midiOutGetDevCaps(0, ref myCaps,
+            //   (UInt32)Marshal.SizeOf(myCaps));
+           // r = 
+            //res = r;
             //Console.WriteLine(res.GetType());
             //PlayNote(handle, 127, 60);
             //Console.ReadLine();

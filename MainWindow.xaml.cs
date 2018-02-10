@@ -127,8 +127,9 @@
         /// a series of variables to record loops
         /// </summary>
         int notesToRecord = 0;
+        int currentInstrument = 91;
         int maxRecordedNotes = 16;
-        private System.Collections.Generic.List<System.Collections.Generic.List<int[]>> notes;
+        private List<List<int[]>> notes;
         int syncCount = 0;
 
         private delegate void MidiCallBack(int handle, int msg,
@@ -373,12 +374,13 @@
 
                 int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
-                PlayNote(handle, 30, armHeight, 91);
+                PlayNote(handle, 30, armHeight, currentInstrument);
                 if (isRecording())
                 {
                     notes[notes.Count - 1].Add(new int[2] { armHeight, 91 });
                 }
                 if (notes.Count > 0) {
+                    //Console.WriteLine("Notes.count: " + notes.Count);
                     if (notesToRecord == 0)
                     {
                         foreach (List<int[]> noteList in notes)
@@ -412,7 +414,7 @@
         }
 
         private void playRecordedNote(int handle, List<int[]> noteList, int index) {
-            Console.WriteLine("Notelist.count: " + noteList.Count + " synccount: " + index);
+            //Console.WriteLine("Notelist.count: " + noteList.Count + " synccount: " + index);
             PlayNote(handle, 30, noteList[index][0], noteList[index][1]);
         }
 

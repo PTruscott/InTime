@@ -10,7 +10,6 @@
     using LiveCharts.Wpf;
     using System.ComponentModel;
     using System;
-    using System.Threading.Tasks;
     using System.Runtime.InteropServices;
     using System.Collections.Generic;
 
@@ -92,7 +91,7 @@
         public SeriesCollection LeftLegCollection { get; set; }
         public SeriesCollection RightLegCollection { get; set; }
 
-        /// <summary>
+        /// <summary>{ get; set; }
         /// the number of points the graphs display
         /// </summary>
         private int NumberOfPoints = 300;
@@ -132,6 +131,12 @@
         private List<List<int[]>> notes;
         int syncCount = 0;
 
+        /// <summary>
+        /// Used to be able to end playing notes
+        /// </summary>
+        int currentTime = Int32.MinValue;
+        private List<Note> playingNotes;
+
         private delegate void MidiCallBack(int handle, int msg,
            int instance, int param1, int param2);
 
@@ -151,12 +156,19 @@
         public MainWindow()
         {
             midiOutOpen(ref handle, 0, null, 0, 0);
-            Points = new System.Collections.Generic.List<double>[4];
-            notes = new System.Collections.Generic.List<System.Collections.Generic.List<int[]>>();
-            leftArmPeaks = new System.Collections.Generic.List<Peak>();
+
+            midiOutShortMsg(handle, 0x000051C1);
+            midiOutShortMsg(handle, 0x000022C2);
+            midiOutShortMsg(handle, 0x000001C3);
+            midiOutShortMsg(handle, 0x000041C4);
+
+            Points = new List<double>[4];
+            notes = new List<List<int[]>>();
+            leftArmPeaks = new List<Peak>();
+            playingNotes = new List<Note>();
             for (int i = 0; i < Points.Length; i++)
             {
-                Points[i] = new System.Collections.Generic.List<double>();
+                Points[i] = new List<double>();
                 for (int j = 0; j < NumberOfPoints; j++)
                 {
                     Points[i].Add(0);
@@ -168,6 +180,8 @@
 
             DataContext = this;
 
+            labelAngleForIntrument.Text = "0";
+
             bpm = new BPMCounter(leftText);
 
             players = new MediaPlayer[MediaPlayers];
@@ -175,6 +189,19 @@
             for (int i = 0; i < MediaPlayers; i++) {
                 players[i] = new MediaPlayer();
             }
+
+            foreach (Note n in playingNotes)
+            {
+                if (n.getExpiryTime() <= currentTime)
+                {
+                    //PlayNote(handle, 0, n.getNote(), n.getInstrument());
+                    Console.WriteLine("Expired! Current Time: " + currentTime + " Expiry Time: " + n.getExpiryTime());
+                }
+            }
+
+            playingNotes.RemoveAll(note => note.getExpiryTime() <= currentTime);
+
+            currentTime++;
         }
 
         private void PlayNote(int handle, int vel, int note, int instrument) {
@@ -185,10 +212,14 @@
             string insHex = instrument.ToString();
             //builds into a hex string
             string s = string.Format("0x00{0}{1}{2}", velHex, noteHex, insHex);
+            Console.WriteLine(s);
             //converts to an integer
             int value = (int)new Int32Converter().ConvertFromString(s);
             //plays the note
             midiOutShortMsg(handle, value);
+            if (vel != 0) {
+                playingNotes.Add(new Note(vel, currentTime, note, instrument));
+            }
         }
 
         private void InitGraphs()
@@ -342,6 +373,8 @@
 
             UpdateGraphs();
 
+            ChangeInstrument(skeleton);
+            
             foreach (Peak p in leftArmPeaks)
             {
                 p.timeStep();
@@ -357,7 +390,7 @@
             else if (LegStomp(false, skeleton)) {
                 Console.WriteLine("Right leg stomp");
                 //if currently recording and new record message comes in then wipe and start again
-                if (isRecording()) notes.RemoveAt(notes.Count - 1);
+                if (IsRecording()) notes.RemoveAt(notes.Count - 1);
                 notes.Add(new List<int[]>());
                 notesToRecord = maxRecordedNotes+1;
             }
@@ -375,9 +408,9 @@
                 int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
                 PlayNote(handle, 30, armHeight, currentInstrument);
-                if (isRecording())
+                if (IsRecording())
                 {
-                    notes[notes.Count - 1].Add(new int[2] { armHeight, 91 });
+                    notes[notes.Count - 1].Add(new int[2] { armHeight, currentInstrument });
                 }
                 if (notes.Count > 0) {
                     //Console.WriteLine("Notes.count: " + notes.Count);
@@ -385,12 +418,12 @@
                     {
                         foreach (List<int[]> noteList in notes)
                         {
-                            playRecordedNote(handle, noteList, syncCount);
+                            PlayRecordedNote(handle, noteList, syncCount);
                         }
                     }
                     else {
                         for (int i = 0; i < notes.Count - 2; i++) {
-                            playRecordedNote(handle, notes[i], syncCount);
+                            PlayRecordedNote(handle, notes[i], syncCount);
                         }
                     }
                    
@@ -402,7 +435,7 @@
                 {
                     PlayNote(handle, 30, 39, 99);
                     if (notesToRecord > 0) notesToRecord--;
-                    if (isRecording())
+                    if (IsRecording())
                     {
                         rightText.Text = "Recording";
                     }
@@ -413,13 +446,52 @@
             }
         }
 
-        private void playRecordedNote(int handle, List<int[]> noteList, int index) {
+        private void PlayRecordedNote(int handle, List<int[]> noteList, int index) {
             //Console.WriteLine("Notelist.count: " + noteList.Count + " synccount: " + index);
             PlayNote(handle, 30, noteList[index][0], noteList[index][1]);
         }
 
-        private Boolean isRecording() {
+        private Boolean IsRecording() {
             return notesToRecord > 0 && notesToRecord <= maxRecordedNotes;
+        }
+
+        private void ChangeInstrument(Skeleton skeleton)
+        {
+            int forearmAngle = (int)(CalculateJointAngle(skeleton.Joints[JointType.ElbowRight], skeleton.Joints[JointType.WristRight]));
+            //if shoulder angle <= arm angle
+            if (CalculateJointAngle(skeleton.Joints[JointType.ShoulderCenter], skeleton.Joints[JointType.ShoulderRight]) > 
+                CalculateJointAngle(skeleton.Joints[JointType.ShoulderRight], skeleton.Joints[JointType.ElbowRight]))
+            {
+                //match forearm angle within a certain angle 
+                if (forearmAngle > 340 || forearmAngle < 20)
+                {
+                    labelAngleForIntrument.Text = "0";
+                    currentInstrument = 91;
+                }
+                else if (forearmAngle > 70 && forearmAngle < 110)
+                {
+                    labelAngleForIntrument.Text = "90";
+                    currentInstrument = 92;
+                }
+                else if (forearmAngle > 160 && forearmAngle < 200)
+                {
+                    labelAngleForIntrument.Text = "180";
+                    currentInstrument = 93;
+                }
+                else if (forearmAngle > 250 && forearmAngle < 310)
+                {
+                    labelAngleForIntrument.Text = "270";
+                    currentInstrument = 94;
+                }
+            }
+            //update current instrument
+        }
+
+        private double CalculateJointAngle(Joint j2, Joint j1) {
+
+            float xDiff = j2.Position.X - j1.Position.X;
+            float yDiff = j2.Position.Y - j1.Position.Y;
+            return 360-(((Math.Atan2(yDiff, xDiff) * 180.0 / Math.PI)+450)%360);
         }
 
         private Boolean LegStomp(Boolean left, Skeleton skeleton) {

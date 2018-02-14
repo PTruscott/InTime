@@ -104,6 +104,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MIDINotes.cs" />
+    <Compile Include="Note.cs" />
     <Compile Include="Peak.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>

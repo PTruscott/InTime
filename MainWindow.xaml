@@ -1,8 +1,6 @@
 ﻿<Window x:Class="InTime.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
         xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         Title="InTime" Height="720" Width="1280" Loaded="WindowLoaded" Closing="WindowClosing"
         Background="#E9E9E9">
@@ -225,12 +223,15 @@
                 <TextBlock Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}">
                     Bass
                 </TextBlock>
+                <TextBlock Name="labelAngleForIntrument" Visibility="Collapsed" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}">
+                    0
+                </TextBlock>
             </Grid>
             <Line Margin="62, 40, 62, 40" X1="0.3" Y1="0" X2="0.5" Y2="0" Stretch="Uniform" Stroke="LightGray" StrokeThickness="2"></Line>
             <Line Margin="62, 40, 62, 40" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="LightGray" StrokeThickness="2"></Line>
-            <Line Margin="60, 40, 60, 103" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="Blue" StrokeThickness="2" RenderTransformOrigin="0, 1">
+            <Line Name="bullshitline" Margin="60, 40, 60, 103" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="Blue" StrokeThickness="2" RenderTransformOrigin="0, 1">
                 <Line.RenderTransform>
-                    <RotateTransform Angle="0" /> 
+                    <RotateTransform Angle="{Binding ElementName=labelAngleForIntrument, Path=Text}" /> 
                 </Line.RenderTransform> 
             </Line>
         </Grid>

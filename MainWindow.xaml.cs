@@ -189,19 +189,6 @@
             for (int i = 0; i < MediaPlayers; i++) {
                 players[i] = new MediaPlayer();
             }
-
-            foreach (Note n in playingNotes)
-            {
-                if (n.getExpiryTime() <= currentTime)
-                {
-                    //PlayNote(handle, 0, n.getNote(), n.getInstrument());
-                    Console.WriteLine("Expired! Current Time: " + currentTime + " Expiry Time: " + n.getExpiryTime());
-                }
-            }
-
-            playingNotes.RemoveAll(note => note.getExpiryTime() <= currentTime);
-
-            currentTime++;
         }
 
         private void PlayNote(int handle, int vel, int note, int instrument) {
@@ -444,6 +431,19 @@
                     }
                 }
             }
+
+            foreach (Note n in playingNotes)
+            {
+                if (n.getExpiryTime() <= currentTime)
+                {
+                    PlayNote(handle, 0, n.getNote(), n.getInstrument());
+                    //Console.WriteLine("Expired! Current Time: " + currentTime + " Expiry Time: " + n.getExpiryTime());
+                }
+            }
+
+            playingNotes.RemoveAll(note => note.getExpiryTime() <= currentTime);
+
+            currentTime++;
         }
 
         private void PlayRecordedNote(int handle, List<int[]> noteList, int index) {

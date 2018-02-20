@@ -139,7 +139,7 @@
         /// Used to be able to end playing notes
         /// </summary>
         int currentTime = Int32.MinValue;
-        private List<Note> playingNotes;
+        private SortedDictionary<int, Note> playingNotes;
 
         private delegate void MidiCallBack(int handle, int msg,
            int instance, int param1, int param2);
@@ -171,7 +171,7 @@
             Points = new List<double>[2];
             notes = new List<List<int[]>>();
             leftArmPeaks = new List<Peak>();
-            playingNotes = new List<Note>();
+            playingNotes = new SortedDictionary<int, Note>();
             for (int i = 0; i < Points.Length; i++)
             {
                 Points[i] = new List<double>();
@@ -210,7 +210,7 @@
             midiOutShortMsg(handle, value);
             if (vel != 0)
             {
-                playingNotes.Add(new Note(vel, currentTime, note, instrument));
+                playingNotes.Add(vel+currentTime, new Note(note, instrument));
             }
         }
 
@@ -394,7 +394,15 @@
 
                 int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
-                PlayNote(handle, 30, armHeight, currentInstrument);
+                double duration = 0;
+
+                var dist = skeleton.Joints[JointType.WristLeft].Position.X - skeleton.Joints[JointType.ShoulderLeft].Position.X;
+                duration = (Convert.ToDouble(armLength) / dist) * 120;
+
+                if (duration > 0)
+                {
+                    PlayNote(handle, (int)duration, armHeight, currentInstrument);
+                }
                 if (isRecording)
                 {
                     notes[notes.Count - 1].Add(new int[2] { armHeight, currentInstrument });
@@ -449,15 +457,22 @@
                 }
             }
 
-            foreach (Note n in playingNotes)
+            List<int> toRemove = new List<Note>();
+
+            foreach (var pair in playingNotes)
             {
-                if (n.getExpiryTime() <= currentTime)
+                if (pair.Key <= currentTime)
                 {
-                    PlayNote(handle, 0, n.getNote(), n.getInstrument());
+                    PlayNote(handle, 0, pair.Value.getNote(), pair.Value.getInstrument());
+                    toRemove.Add(pair.Value);
                     //Console.WriteLine("Expired! Current Time: " + currentTime + " Expiry Time: " + n.getExpiryTime());
                 }
             }
 
+            foreach (Note n in toRemove)
+            {
+                playingNotes.Remove(n);
+            }
             playingNotes.RemoveAll(note => note.getExpiryTime() <= currentTime);
 
             currentTime++;

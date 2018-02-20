@@ -8,7 +8,7 @@
 
         public Note(int vel, int currentTime, int note, int instrument)
         {
-            this.expiryTime = currentTime + vel;
+            expiryTime = currentTime + vel;
             this.note = note;
             this.instrument = instrument;
         }

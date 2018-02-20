@@ -189,14 +189,14 @@
             </Grid>
             <Line Margin="62, 40, 62, 40" X1="0.3" Y1="0" X2="0.5" Y2="0" Stretch="Uniform" Stroke="LightGray" StrokeThickness="2"></Line>
             <Line Margin="62, 40, 62, 40" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="LightGray" StrokeThickness="2"></Line>
-            <Line Name="bullshitline" Margin="60, 40, 60, 103" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="Blue" StrokeThickness="2" RenderTransformOrigin="0, 1">
+            <Line Name="instrumentLine" Margin="60, 40, 60, 103" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="Blue" StrokeThickness="2" RenderTransformOrigin="0, 1">
                 <Line.RenderTransform>
                     <RotateTransform Angle="{Binding ElementName=labelAngleForIntrument, Path=Text}" /> 
                 </Line.RenderTransform> 
             </Line>
         </Grid>
 
-        <!-- Where the skeleton is displayed -->
+        <!-- where the skeleton is displayed -->
         <!-- while the kinect is loading -->
         <StatusBar Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Center" Name="status" VerticalAlignment="Center" Background="#E9E9E9" Foreground="{StaticResource MediumGreyBrush}">
             <TextBlock TextAlignment="Center" FontSize="20" Name="statusText" Margin="0 0 0 0">Loading Kinect...</TextBlock>
@@ -229,7 +229,7 @@
                 N/A
             </TextBlock>
             <TextBlock Name="bpmCalculatingLabel" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
-                BPM
+                BPM (Calculating...)
             </TextBlock>
         </Grid>
     </Grid>

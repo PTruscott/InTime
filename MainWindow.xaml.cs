@@ -88,8 +88,6 @@
         /// </summary>
         public SeriesCollection LeftArmCollection { get; set; }
         public SeriesCollection RightArmCollection { get; set; }
-        public SeriesCollection LeftLegCollection { get; set; }
-        public SeriesCollection RightLegCollection { get; set; }
 
         /// <summary>{ get; set; }
         /// the number of points the graphs display
@@ -112,21 +110,24 @@
         /// </summary>
         private List<Peak> leftArmPeaks;
 
-        private Boolean isCalculatingBPM = false;
+        private bool isCalculatingBPM;
 
         /// <summary>
         /// Variables for calculating if a leg had been stomped before
         /// </summary>
         bool leftLegWasRaised = false;
-        bool rightLegWasRaised = true;
+        bool rightLegWasRaised = false;
+        double armLength;
 
         /// <summary>
         /// a series of variables to record loops
         /// </summary>
         int loopLength = 16;
-        int currentTick = 16;
+        int currentTick;
         bool isRecording = false;
         bool shouldRecord = false;
+
+
 
         //specifies the channel on which is currently playing
         int currentInstrument = 91;
@@ -167,7 +168,7 @@
             midiOutShortMsg(handle, 0x000001C3);
             midiOutShortMsg(handle, 0x000041C4);
 
-            Points = new List<double>[4];
+            Points = new List<double>[2];
             notes = new List<List<int[]>>();
             leftArmPeaks = new List<Peak>();
             playingNotes = new List<Note>();
@@ -187,7 +188,11 @@
 
             labelAngleForIntrument.Text = "0";
 
+            currentTick = loopLength;
+
             bpm = new BPMCounter(leftText);
+
+            isCalculatingBPM = true;
         }
 
         private void PlayNote(int handle, int vel, int note, int instrument)
@@ -216,17 +221,7 @@
                 new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
 
-            LeftLegCollection = new SeriesCollection
-            {
-                new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
-            };
-
             RightArmCollection = new SeriesCollection
-            {
-                new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
-            };
-
-            RightLegCollection = new SeriesCollection
             {
                 new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
@@ -236,9 +231,7 @@
                 try
                 {
                     RightArmCollection[0].Values.Add(new ObservableValue(0));
-                    RightLegCollection[0].Values.Add(new ObservableValue(0));
                     LeftArmCollection[0].Values.Add(new ObservableValue(0));
-                    LeftLegCollection[0].Values.Add(new ObservableValue(0));
                 }
                 catch (InvalidCastException)
                 {
@@ -372,6 +365,7 @@
             {
                 if (isCalculatingBPM) bpmCalculatingLabel.Text = "BPM";
                 else bpmCalculatingLabel.Text = "BPM (Calculating...)";
+                Console.WriteLine(isCalculatingBPM);
                 isCalculatingBPM = !isCalculatingBPM;
                 Console.WriteLine("Right leg stomp");
             }
@@ -383,6 +377,7 @@
                 if (isRecording) notes.RemoveAt(notes.Count - 1);
                 notes.Add(new List<int[]>());
                 shouldRecord = true;
+                isRecording = false;
                 recordingLabel.Text = "Will Record";
                 recordingLabel.Foreground = new SolidColorBrush(Colors.Orange);
                 recordingCounter.Foreground = new SolidColorBrush(Colors.Orange);
@@ -395,7 +390,7 @@
             }
             else
             {
-                double armLength = CalculateArmLength(skeleton);
+                armLength = CalculateArmLength(skeleton);
 
                 int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
@@ -432,7 +427,7 @@
                     if (currentTick > 1) currentTick--;
                     else
                     {
-                        currentTick = 16;
+                        currentTick = loopLength;
                         if (shouldRecord)
                         {
                             shouldRecord = false;
@@ -580,7 +575,6 @@
             {
                 leftArmPeaks.RemoveAt(0);
             }
-            //Console.WriteLine("Peak Count: "+leftArmPeaks.Count);
             int lastTime = -1;
             double dif = -1;
             foreach (Peak p in leftArmPeaks)
@@ -600,15 +594,13 @@
                         dif += p.getTimeStamp() - lastTime;
                     }
                     lastTime = p.getTimeStamp();
-                    //Console.WriteLine("Last Time: " + lastTime);
                 }
             }
-            //Console.WriteLine("Dif: " + dif);
             dif /= (leftArmPeaks.Count - 1);
             double bpmNum = dif / RefreshRate;
             bpmNum = 60 / bpmNum;
             bpm.Update((int)bpmNum);
-            //Console.WriteLine("BPM: "+bpm);
+
             bpmCounterLabel.Text = ((int)(bpmNum)).ToString();
         }
 
@@ -620,10 +612,17 @@
 
         private void CalculateDist(Skeleton skeleton)
         {
-            Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
-            Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
-            Points[2].Add(CalulateJointDist(JointType.AnkleRight, skeleton));
-            Points[3].Add(CalulateJointDist(JointType.AnkleLeft, skeleton));
+            if (isCalculatingBPM)
+            {
+                Points[0].Add(CalulateJointDist(JointType.WristRight, skeleton));
+                Points[1].Add(CalulateJointDist(JointType.WristLeft, skeleton));
+            }
+            else
+            {
+                var ratio = 1.5 / 128;
+                Points[0].Add(ratio*CalculateJointHeight(skeleton.Joints[JointType.WristRight], skeleton.Joints[JointType.ShoulderRight], armLength));
+                Points[1].Add(ratio*CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength));
+            }
             for (int i = 0; i < Points.Length; i++)
             {
                 Points[i].RemoveAt(0);
@@ -655,12 +654,6 @@
                         //the lditch of the new peak is the rditch of the previous
                         leftArmPeaks.Add(new Peak(leftArmPeaks[leftArmPeaks.Count - 1].getRDitch(), point1, point2, NumberOfPoints));
                     }
-                    /*
-                    var p1 = new MediaPlayer();
-                    p1.Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
-                    p1.Play(); 
-                    Console.WriteLine("Left arm peak! Height: " + ((Peak)Peaks[i][Peaks[i].Count - 1]).getSize());
-                    */
                 }
                 //if not, the last peak is more pronouced
                 else
@@ -680,16 +673,12 @@
             RightArmCollection[0].Values.RemoveAt(0);
             LeftArmCollection[0].Values.Add(new ObservableValue(Points[1][lastItem]));
             LeftArmCollection[0].Values.RemoveAt(0);
-            RightLegCollection[0].Values.Add(new ObservableValue(Points[2][lastItem]));
-            RightLegCollection[0].Values.RemoveAt(0);
-            LeftLegCollection[0].Values.Add(new ObservableValue(Points[3][lastItem]));
-            LeftLegCollection[0].Values.RemoveAt(0);
         }
 
         private double CalulateJointDist(JointType jointType, Skeleton skeleton)
         {
             Joint joint0 = skeleton.Joints[jointType];
-            Joint joint1 = skeleton.Joints[JointType.Spine];
+            Joint joint1 = skeleton.Joints[JointType.ShoulderCenter];
 
             double dist = Math.Abs(joint0.Position.X - joint1.Position.X) + Math.Abs(joint0.Position.Y - joint1.Position.Y) + Math.Abs(joint0.Position.Z - joint1.Position.Z);
             return dist;

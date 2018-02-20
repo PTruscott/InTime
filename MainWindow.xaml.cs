@@ -107,12 +107,10 @@
         /// </summary>
         private BPMCounter bpm;
 
-        MediaPlayer[] players;
         /// <summary>
         /// list of the peaks of the left arm to calculate bpm with if needed
         /// </summary>
         private List<Peak> leftArmPeaks;
-        int MediaPlayers = 10;
 
         private Boolean isCalculatingBPM = false;
 
@@ -120,14 +118,19 @@
         /// Variables for calculating if a leg had been stomped before
         /// </summary>
         bool leftLegWasRaised = false;
-        bool rightLegWasRaised = false;
+        bool rightLegWasRaised = true;
 
         /// <summary>
         /// a series of variables to record loops
         /// </summary>
-        int notesToRecord = 0;
+        int loopLength = 16;
+        int currentTick = 16;
+        bool isRecording = false;
+        bool shouldRecord = false;
+
+        //specifies the channel on which is currently playing
         int currentInstrument = 91;
-        int maxRecordedNotes = 16;
+        //a recorded list of the ints
         private List<List<int[]>> notes;
         int syncCount = 0;
 
@@ -155,8 +158,10 @@
         /// </summary>
         public MainWindow()
         {
+            //opens the midi out 
             midiOutOpen(ref handle, 0, null, 0, 0);
 
+            //sets up four channels with four different instruments.  
             midiOutShortMsg(handle, 0x000051C1);
             midiOutShortMsg(handle, 0x000022C2);
             midiOutShortMsg(handle, 0x000001C3);
@@ -183,15 +188,10 @@
             labelAngleForIntrument.Text = "0";
 
             bpm = new BPMCounter(leftText);
-
-            players = new MediaPlayer[MediaPlayers];
-
-            for (int i = 0; i < MediaPlayers; i++) {
-                players[i] = new MediaPlayer();
-            }
         }
 
-        private void PlayNote(int handle, int vel, int note, int instrument) {
+        private void PlayNote(int handle, int vel, int note, int instrument)
+        {
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
             string velHex = vel.ToString("X");
@@ -199,12 +199,12 @@
             string insHex = instrument.ToString();
             //builds into a hex string
             string s = string.Format("0x00{0}{1}{2}", velHex, noteHex, insHex);
-            Console.WriteLine(s);
             //converts to an integer
             int value = (int)new Int32Converter().ConvertFromString(s);
             //plays the note
             midiOutShortMsg(handle, value);
-            if (vel != 0) {
+            if (vel != 0)
+            {
                 playingNotes.Add(new Note(vel, currentTime, note, instrument));
             }
         }
@@ -231,7 +231,7 @@
                 new LineSeries { Values = new ChartValues<ObservableValue> { new ObservableValue(0) } }
             };
 
-            for (int i = 0; i < NumberOfPoints/5 - 1; i++)
+            for (int i = 0; i < NumberOfPoints / 5 - 1; i++)
             {
                 try
                 {
@@ -361,31 +361,36 @@
             UpdateGraphs();
 
             ChangeInstrument(skeleton);
-            
+
             foreach (Peak p in leftArmPeaks)
             {
                 p.timeStep();
             }
 
-            if (LegStomp(true, skeleton))
+            //check if right leg stomped
+            if (LegStomp(false, skeleton))
             {
                 if (isCalculatingBPM) bpmCalculatingLabel.Text = "BPM";
                 else bpmCalculatingLabel.Text = "BPM (Calculating...)";
                 isCalculatingBPM = !isCalculatingBPM;
-                Console.WriteLine("left leg stomp");
-            }
-            else if (LegStomp(false, skeleton)) {
                 Console.WriteLine("Right leg stomp");
+            }
+            //check if left leg stomped
+            else if (LegStomp(true, skeleton))
+            {
+                Console.WriteLine("Left leg stomp");
                 //if currently recording and new record message comes in then wipe and start again
-                if (IsRecording()) notes.RemoveAt(notes.Count - 1);
+                if (isRecording) notes.RemoveAt(notes.Count - 1);
                 notes.Add(new List<int[]>());
-                notesToRecord = maxRecordedNotes+1;
+                shouldRecord = true;
+                recordingLabel.Text = "Will Record";
+                recordingLabel.Foreground = new SolidColorBrush(Colors.Orange);
+                recordingCounter.Foreground = new SolidColorBrush(Colors.Orange);
             }
 
             if (isCalculatingBPM)
             {
                 UpdatePeaks();
-
                 CalculateBPM();
             }
             else
@@ -395,25 +400,28 @@
                 int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
 
                 PlayNote(handle, 30, armHeight, currentInstrument);
-                if (IsRecording())
+                if (isRecording)
                 {
                     notes[notes.Count - 1].Add(new int[2] { armHeight, currentInstrument });
                 }
-                if (notes.Count > 0) {
+                if (notes.Count > 0)
+                {
                     //Console.WriteLine("Notes.count: " + notes.Count);
-                    if (notesToRecord == 0)
+                    if (!isRecording)
                     {
                         foreach (List<int[]> noteList in notes)
                         {
                             PlayRecordedNote(handle, noteList, syncCount);
                         }
                     }
-                    else {
-                        for (int i = 0; i < notes.Count - 2; i++) {
+                    else
+                    {
+                        for (int i = 0; i < notes.Count - 2; i++)
+                        {
                             PlayRecordedNote(handle, notes[i], syncCount);
                         }
                     }
-                   
+
                     syncCount++;
                     if (syncCount > notes[0].Count - 1) syncCount = 0;
                 }
@@ -421,14 +429,28 @@
                 if (bpm.shouldTick())
                 {
                     PlayNote(handle, 30, 39, 99);
-                    if (notesToRecord > 0) notesToRecord--;
-                    if (IsRecording())
+                    if (currentTick > 1) currentTick--;
+                    else
                     {
-                        rightText.Text = "Recording";
+                        currentTick = 16;
+                        if (shouldRecord)
+                        {
+                            shouldRecord = false;
+                            isRecording = true;
+                            recordingLabel.Text = "Recording";
+                            recordingLabel.Foreground = new SolidColorBrush(Colors.Red);
+                            recordingCounter.Foreground = new SolidColorBrush(Colors.Red);
+                        }
+                        else if (isRecording)
+                        {
+                            isRecording = false;
+                            recordingLabel.Text = "Not Recording";
+                            var greyBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6e6e6e"));
+                            recordingLabel.Foreground = greyBrush;
+                            recordingCounter.Foreground = greyBrush;
+                        }
                     }
-                    else {
-                        rightText.Text = "Not recording";
-                    }
+                    recordingCounter.Text = currentTick.ToString();
                 }
             }
 
@@ -446,20 +468,18 @@
             currentTime++;
         }
 
-        private void PlayRecordedNote(int handle, List<int[]> noteList, int index) {
+        private void PlayRecordedNote(int handle, List<int[]> noteList, int index)
+        {
             //Console.WriteLine("Notelist.count: " + noteList.Count + " synccount: " + index);
-            PlayNote(handle, 30, noteList[index][0], noteList[index][1]);
+           // PlayNote(handle, 30, noteList[index][0], noteList[index][1]);
         }
 
-        private Boolean IsRecording() {
-            return notesToRecord > 0 && notesToRecord <= maxRecordedNotes;
-        }
 
         private void ChangeInstrument(Skeleton skeleton)
         {
             int forearmAngle = (int)(CalculateJointAngle(skeleton.Joints[JointType.ElbowRight], skeleton.Joints[JointType.WristRight]));
             //if shoulder angle <= arm angle
-            if (CalculateJointAngle(skeleton.Joints[JointType.ShoulderCenter], skeleton.Joints[JointType.ShoulderRight]) > 
+            if (CalculateJointAngle(skeleton.Joints[JointType.ShoulderCenter], skeleton.Joints[JointType.ShoulderRight]) >
                 CalculateJointAngle(skeleton.Joints[JointType.ShoulderRight], skeleton.Joints[JointType.ElbowRight]))
             {
                 //match forearm angle within a certain angle 
@@ -487,14 +507,16 @@
             //update current instrument
         }
 
-        private double CalculateJointAngle(Joint j2, Joint j1) {
+        private double CalculateJointAngle(Joint j2, Joint j1)
+        {
 
             float xDiff = j2.Position.X - j1.Position.X;
             float yDiff = j2.Position.Y - j1.Position.Y;
-            return 360-(((Math.Atan2(yDiff, xDiff) * 180.0 / Math.PI)+450)%360);
+            return 360 - (((Math.Atan2(yDiff, xDiff) * 180.0 / Math.PI) + 450) % 360);
         }
 
-        private Boolean LegStomp(Boolean left, Skeleton skeleton) {
+        private Boolean LegStomp(Boolean left, Skeleton skeleton)
+        {
             if (left)
             {
                 //if the left leg is raised
@@ -538,7 +560,8 @@
             return false;
         }
 
-        private Boolean legRaised(Boolean left, Skeleton skeleton) {
+        private Boolean legRaised(Boolean left, Skeleton skeleton)
+        {
             double legLength = CalculateLegLength(skeleton);
             if (left)
             {
@@ -551,7 +574,8 @@
             return false;
         }
 
-        private void CalculateBPM() {
+        private void CalculateBPM()
+        {
             while (leftArmPeaks.Count > 5)
             {
                 leftArmPeaks.RemoveAt(0);
@@ -582,13 +606,14 @@
             //Console.WriteLine("Dif: " + dif);
             dif /= (leftArmPeaks.Count - 1);
             double bpmNum = dif / RefreshRate;
-            bpmNum = 60/bpmNum;
+            bpmNum = 60 / bpmNum;
             bpm.Update((int)bpmNum);
             //Console.WriteLine("BPM: "+bpm);
             bpmCounterLabel.Text = ((int)(bpmNum)).ToString();
         }
 
-        private Boolean IsCloseTo(int num1, int num2) {
+        private Boolean IsCloseTo(int num1, int num2)
+        {
             int range = 10;
             return (num2 > num1 - range && num2 < num1 + range);
         }
@@ -670,7 +695,8 @@
             return dist;
         }
 
-        private double CalculateArmLength(Skeleton skeleton) {
+        private double CalculateArmLength(Skeleton skeleton)
+        {
             Joint j1 = skeleton.Joints[JointType.WristLeft];
             Joint j2 = skeleton.Joints[JointType.ElbowLeft];
             Joint j3 = skeleton.Joints[JointType.ShoulderLeft];
@@ -678,7 +704,8 @@
             return CalculateLimbLength(j1, j2, j3);
         }
 
-        private double CalculateLegLength(Skeleton skeleton) {
+        private double CalculateLegLength(Skeleton skeleton)
+        {
             Joint j1 = skeleton.Joints[JointType.AnkleLeft];
             Joint j2 = skeleton.Joints[JointType.KneeLeft];
             Joint j3 = skeleton.Joints[JointType.HipLeft];
@@ -686,21 +713,23 @@
             return CalculateLimbLength(j1, j2, j3);
         }
 
-        private double CalculateLimbLength(Joint j1, Joint j2, Joint j3) {
+        private double CalculateLimbLength(Joint j1, Joint j2, Joint j3)
+        {
             double dist;
-        
+
             dist = Math.Sqrt(Math.Pow((j1.Position.X - j2.Position.X), 2) + Math.Pow((j1.Position.Y - j2.Position.Y), 2) + Math.Pow((j1.Position.Z - j2.Position.Z), 2));
             dist += Math.Sqrt(Math.Pow((j2.Position.X - j3.Position.X), 2) + Math.Pow((j2.Position.Y - j3.Position.Y), 2) + Math.Pow((j2.Position.Z - j3.Position.Z), 2));
 
             return dist;
         }
 
-        private int CalculateJointHeight(Joint joint, Joint reference, double armLength) {
+        private int CalculateJointHeight(Joint joint, Joint reference, double armLength)
+        {
             //Console.WriteLine("Arm lenght: " + armLength);
             armLength *= 0.9;
             var modifier = 64 / armLength;
             //Console.WriteLine("Modifier: " + modifier);
-            var thing = 64 + modifier*(joint.Position.Y - reference.Position.Y);
+            var thing = 64 + modifier * (joint.Position.Y - reference.Position.Y);
             if (thing > 128) return 128;
             if (thing < 0) return 0;
             return (int)(thing);
@@ -840,8 +869,6 @@
             Joint joint0 = skeleton.Joints[jointType0];
             Joint joint1 = skeleton.Joints[jointType1];
 
-            //Console.WriteLine(jointType0 + ": (" + joint0.Position.X + ", " + joint0.Position.Y + ", " + joint0.Position.Z + ")");
-
             // If we can't find either of these joints, exit
             if (joint0.TrackingState == JointTrackingState.NotTracked ||
                 joint1.TrackingState == JointTrackingState.NotTracked)
@@ -886,27 +913,5 @@
                 }
             }
         }
-
-        public void PlayHihat()
-        {
-            if (MediaPlayers > players.Length - 1) {
-                MediaPlayers = 0;
-            }
-            //players[MediaPlayers] = new MediaPlayer();
-            players[MediaPlayers].Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\hi-hat.wav"));
-            players[MediaPlayers].Play();
-            MediaPlayers++;
-        }
-        public void PlayKick()
-        {
-            if (MediaPlayers > players.Length - 1)
-            {
-                MediaPlayers = 0;
-            }
-            players[MediaPlayers].Open(new Uri(@"C:\Users\Peran\Coding\InTime\Images\kick.wav"));
-            players[MediaPlayers].Play();
-            MediaPlayers++;
-        }
-
     }
 }

@@ -103,7 +103,7 @@
         /// <summary>
         /// the bpm counter
         /// </summary>
-        private BPMCounter bpm;
+        private BPMTicker bpm;
 
         /// <summary>
         /// list of the peaks of the left arm to calculate bpm with if needed
@@ -190,7 +190,7 @@
 
             currentTick = loopLength;
 
-            bpm = new BPMCounter(leftText);
+            bpm = new BPMTicker(leftText);
 
             isCalculatingBPM = true;
         }
@@ -390,73 +390,57 @@
             }
             else
             {
-                armLength = CalculateArmLength(skeleton);
+                var shouldTick = bpm.shouldTick();
 
-                int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
-
-                double duration = 0;
-
-                var dist = skeleton.Joints[JointType.WristLeft].Position.X - skeleton.Joints[JointType.ShoulderLeft].Position.X;
-                duration = (Convert.ToDouble(armLength) / dist) * 120;
-
-                if (duration > 0)
+                if (shouldTick > 0)
                 {
-                    PlayNote(handle, (int)duration, armHeight, currentInstrument);
-                }
-                if (isRecording)
-                {
-                    notes[notes.Count - 1].Add(new int[2] { armHeight, currentInstrument });
-                }
-                if (notes.Count > 0)
-                {
-                    //Console.WriteLine("Notes.count: " + notes.Count);
-                    if (!isRecording)
+                    //play a note
+
+                    armLength = CalculateArmLength(skeleton);
+
+                    int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
+
+                    double duration = 0;
+
+                    var dist = skeleton.Joints[JointType.WristLeft].Position.X - skeleton.Joints[JointType.ShoulderLeft].Position.X;
+                    duration = (dist/Convert.ToDouble(armLength)) * 256;
+
+                    if (duration > 0)
                     {
-                        foreach (List<int[]> noteList in notes)
-                        {
-                            PlayRecordedNote(handle, noteList, syncCount);
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < notes.Count - 2; i++)
-                        {
-                            PlayRecordedNote(handle, notes[i], syncCount);
-                        }
+                        //PlayNote(handle, (int)duration, armHeight, currentInstrument);
                     }
 
-                    syncCount++;
-                    if (syncCount > notes[0].Count - 1) syncCount = 0;
-                }
+                    //play drum beat and update recording.
 
-                if (bpm.shouldTick())
-                {
-                    PlayNote(handle, 30, 39, 99);
-                    if (currentTick > 1) currentTick--;
-                    else
+                    if (shouldTick == 2)
                     {
-                        currentTick = loopLength;
-                        if (shouldRecord)
+                        PlayNote(handle, 30, 39, 99);
+                        if (currentTick > 1) currentTick--;
+                        else
                         {
-                            shouldRecord = false;
-                            isRecording = true;
-                            recordingLabel.Text = "Recording";
-                            recordingLabel.Foreground = new SolidColorBrush(Colors.Red);
-                            recordingCounter.Foreground = new SolidColorBrush(Colors.Red);
+                            currentTick = loopLength;
+                            if (shouldRecord)
+                            {
+                                shouldRecord = false;
+                                isRecording = true;
+                                recordingLabel.Text = "Recording";
+                                recordingLabel.Foreground = new SolidColorBrush(Colors.Red);
+                                recordingCounter.Foreground = new SolidColorBrush(Colors.Red);
+                            }
+                            else if (isRecording)
+                            {
+                                isRecording = false;
+                                recordingLabel.Text = "Not Recording";
+                                var greyBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6e6e6e"));
+                                recordingLabel.Foreground = greyBrush;
+                                recordingCounter.Foreground = greyBrush;
+                            }
                         }
-                        else if (isRecording)
-                        {
-                            isRecording = false;
-                            recordingLabel.Text = "Not Recording";
-                            var greyBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6e6e6e"));
-                            recordingLabel.Foreground = greyBrush;
-                            recordingCounter.Foreground = greyBrush;
-                        }
+                        recordingCounter.Text = currentTick.ToString();
                     }
-                    recordingCounter.Text = currentTick.ToString();
                 }
             }
-
+            /*
             List<int> toRemove = new List<Note>();
 
             foreach (var pair in playingNotes)
@@ -474,7 +458,7 @@
                 playingNotes.Remove(n);
             }
             playingNotes.RemoveAll(note => note.getExpiryTime() <= currentTime);
-
+            */
             currentTime++;
         }
 

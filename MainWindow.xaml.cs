@@ -12,6 +12,7 @@
     using System;
     using System.Runtime.InteropServices;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -112,6 +113,9 @@
 
         private bool isCalculatingBPM;
 
+        private Heap<NoteTuple> playingNotes;
+
+
         /// <summary>
         /// Variables for calculating if a leg had been stomped before
         /// </summary>
@@ -123,23 +127,22 @@
         /// a series of variables to record loops
         /// </summary>
         int loopLength = 16;
+        int numberOfBeats = 128;
+        int beatCounter = 0;
         int currentTick;
         bool isRecording = false;
         bool shouldRecord = false;
 
-
-
         //specifies the channel on which is currently playing
         int currentInstrument = 91;
         //a recorded list of the ints
-        private List<List<int[]>> notes;
-        int syncCount = 0;
+        private List<Note[]> recordedNotes;
 
         /// <summary>
         /// Used to be able to end playing notes
         /// </summary>
         int currentTime = Int32.MinValue;
-        private SortedDictionary<int, Note> playingNotes;
+        //private SortedDictionary<int, Note> playingNotes;
 
         private delegate void MidiCallBack(int handle, int msg,
            int instance, int param1, int param2);
@@ -169,9 +172,18 @@
             midiOutShortMsg(handle, 0x000041C4);
 
             Points = new List<double>[2];
-            notes = new List<List<int[]>>();
+            recordedNotes = new List<Note[]>();
             leftArmPeaks = new List<Peak>();
-            playingNotes = new SortedDictionary<int, Note>();
+
+            playingNotes = new MinHeap<NoteTuple>();
+
+            //var testNotes = new MinHeap<NoteTuple>(new[] {new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1))});
+            //var testNotes = new MinHeap<Note>(new[] { new Note(0, 1, 2), new Note(0, 1, 3), new Note(0, 1, 2) });
+            //Console.WriteLine(testNotes.ExtractDominating());
+
+
+            //playingNotes = new MinHeap<Tuple<int, Note>>();
+
             for (int i = 0; i < Points.Length; i++)
             {
                 Points[i] = new List<double>();
@@ -195,23 +207,34 @@
             isCalculatingBPM = true;
         }
 
-        private void PlayNote(int handle, int vel, int note, int instrument)
+        private void PlayNote(int handle, Note thisNote)
+        {
+            //don't want drumbeats to be recorded
+            if (thisNote.getInstrument() != 99)
+            {
+                playingNotes.Add(new NoteTuple(thisNote.getDuration() + currentTime, thisNote));
+            }
+            MidiNote(handle, thisNote);
+        }
+
+        private void EndNote(int handle, Note thisNote)
+        {
+            MidiNote(handle, thisNote);
+        }
+
+        private void MidiNote(int handle, Note thisNote)
         {
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
-            string velHex = vel.ToString("X");
-            string noteHex = note.ToString("X");
-            string insHex = instrument.ToString();
+            string velHex = (thisNote.getDuration() * bpm.getTickDurationMS()).ToString("X");
+            string noteHex = thisNote.getNote().ToString("X");
+            string insHex = thisNote.getInstrument().ToString();
             //builds into a hex string
             string s = string.Format("0x00{0}{1}{2}", velHex, noteHex, insHex);
             //converts to an integer
             int value = (int)new Int32Converter().ConvertFromString(s);
             //plays the note
             midiOutShortMsg(handle, value);
-            if (vel != 0)
-            {
-                playingNotes.Add(vel+currentTime, new Note(note, instrument));
-            }
         }
 
         private void InitGraphs()
@@ -374,8 +397,8 @@
             {
                 Console.WriteLine("Left leg stomp");
                 //if currently recording and new record message comes in then wipe and start again
-                if (isRecording) notes.RemoveAt(notes.Count - 1);
-                notes.Add(new List<int[]>());
+                if (isRecording) recordedNotes.RemoveAt(recordedNotes.Count - 1);
+                recordedNotes.Add(new Note[numberOfBeats]);
                 shouldRecord = true;
                 isRecording = false;
                 recordingLabel.Text = "Will Record";
@@ -394,6 +417,13 @@
 
                 if (shouldTick > 0)
                 {
+                    //remove playing notes
+                    while (playingNotes.Count > 0 && playingNotes.Min().getTimeEnd() < currentTime) {
+                        Note endingNote = playingNotes.ExtractDominating().getNote();
+                        endingNote = endingNote.endNote();
+                        EndNote(handle, endingNote);
+                    }
+
                     //play a note
 
                     armLength = CalculateArmLength(skeleton);
@@ -402,20 +432,42 @@
 
                     double duration = 0;
 
-                    var dist = skeleton.Joints[JointType.WristLeft].Position.X - skeleton.Joints[JointType.ShoulderLeft].Position.X;
+                    var dist = skeleton.Joints[JointType.ShoulderLeft].Position.X - skeleton.Joints[JointType.WristLeft].Position.X;
                     duration = (dist/Convert.ToDouble(armLength)) * 256;
+
+                    duration = 5;
 
                     if (duration > 0)
                     {
-                        //PlayNote(handle, (int)duration, armHeight, currentInstrument);
+                        Note thisNote = new Note(armHeight, currentInstrument, (int)duration);
+                        Console.WriteLine("Playing note! " + currentTime + " Duration: "+duration);
+                        PlayNote(handle, thisNote);
+                        if (isRecording)
+                        {
+                            recordedNotes[recordedNotes.Count - 1][beatCounter] = thisNote; 
+                        }
+                    }
+
+                    var maxRecordings = recordedNotes.Count;
+
+                    if (maxRecordings > 0)
+                    {
+                        if (isRecording) maxRecordings--;
+                        for (int i = 0; i < maxRecordings; i++)
+                        {
+                            if (recordedNotes[i][beatCounter] != null)
+                            {
+                                PlayNote(handle, recordedNotes[i][beatCounter]);
+                            }
+                        }
                     }
 
                     //play drum beat and update recording.
 
                     if (shouldTick == 2)
                     {
-                        PlayNote(handle, 30, 39, 99);
-                        if (currentTick > 1) currentTick--;
+                        PlayNote(handle, new Note(39, 99, 30));
+                        if (currentTick > 1) currentTick--;     
                         else
                         {
                             currentTick = loopLength;
@@ -438,34 +490,12 @@
                         }
                         recordingCounter.Text = currentTick.ToString();
                     }
+
+                    beatCounter++;
+                    currentTime++;
+                    if (beatCounter >= numberOfBeats) beatCounter = 0;
                 }
             }
-            /*
-            List<int> toRemove = new List<Note>();
-
-            foreach (var pair in playingNotes)
-            {
-                if (pair.Key <= currentTime)
-                {
-                    PlayNote(handle, 0, pair.Value.getNote(), pair.Value.getInstrument());
-                    toRemove.Add(pair.Value);
-                    //Console.WriteLine("Expired! Current Time: " + currentTime + " Expiry Time: " + n.getExpiryTime());
-                }
-            }
-
-            foreach (Note n in toRemove)
-            {
-                playingNotes.Remove(n);
-            }
-            playingNotes.RemoveAll(note => note.getExpiryTime() <= currentTime);
-            */
-            currentTime++;
-        }
-
-        private void PlayRecordedNote(int handle, List<int[]> noteList, int index)
-        {
-            //Console.WriteLine("Notelist.count: " + noteList.Count + " synccount: " + index);
-           // PlayNote(handle, 30, noteList[index][0], noteList[index][1]);
         }
 
 

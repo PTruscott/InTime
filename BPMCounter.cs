@@ -39,6 +39,12 @@ namespace InTime
             }
             return 0;
         }
+
+        public int getTickDurationMS()
+        {
+            double bpmTick = (60 / bpm) / 8;
+            return (int)bpmTick * 1000;
+        }
     }
 }
 

@@ -48,6 +48,11 @@ namespace InTime
             if (duration == other.getDuration()) return 0;
             return 1;
         }
+
+        public override string ToString()
+        {
+            return "note: " + note + " duration: " + duration+ " instrument: " + instrument;
+        }
     }
 
     public class NoteTuple : IComparable<NoteTuple>

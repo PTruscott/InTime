@@ -127,7 +127,7 @@
         /// a series of variables to record loops
         /// </summary>
         int loopLength = 16;
-        int numberOfBeats = 128;
+        int numberOfBeats;
         int beatCounter = 0;
         int currentTick;
         bool isRecording = false;
@@ -175,6 +175,7 @@
             recordedNotes = new List<Note[]>();
             leftArmPeaks = new List<Peak>();
 
+            numberOfBeats = loopLength * 4;
             playingNotes = new MinHeap<NoteTuple>();
 
             //var testNotes = new MinHeap<NoteTuple>(new[] {new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1))});
@@ -226,7 +227,7 @@
         {
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
-            string velHex = (thisNote.getDuration() * bpm.getTickDurationMS()).ToString("X");
+            string velHex = (thisNote.getDuration()).ToString("X");
             string noteHex = thisNote.getNote().ToString("X");
             string insHex = thisNote.getInstrument().ToString();
             //builds into a hex string
@@ -433,18 +434,17 @@
                     double duration = 0;
 
                     var dist = skeleton.Joints[JointType.ShoulderLeft].Position.X - skeleton.Joints[JointType.WristLeft].Position.X;
-                    duration = (dist/Convert.ToDouble(armLength)) * 256;
-
-                    duration = 5;
+                    duration = (dist/Convert.ToDouble(armLength)) * 100;
 
                     if (duration > 0)
                     {
                         Note thisNote = new Note(armHeight, currentInstrument, (int)duration);
-                        Console.WriteLine("Playing note! " + currentTime + " Duration: "+duration);
+                        //Console.WriteLine("Playing note! " + currentTime + " Duration: "+duration);
                         PlayNote(handle, thisNote);
                         if (isRecording)
                         {
-                            recordedNotes[recordedNotes.Count - 1][beatCounter] = thisNote; 
+                            recordedNotes[recordedNotes.Count - 1][beatCounter] = thisNote;
+                            Console.WriteLine("Recording note at " + beatCounter + " " + recordedNotes[recordedNotes.Count - 1][beatCounter]);
                         }
                     }
 
@@ -458,6 +458,7 @@
                             if (recordedNotes[i][beatCounter] != null)
                             {
                                 PlayNote(handle, recordedNotes[i][beatCounter]);
+                                Console.WriteLine("Playing recorded note at: " + beatCounter + " out of " + recordedNotes[i].Count());
                             }
                         }
                     }

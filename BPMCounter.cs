@@ -8,6 +8,7 @@ namespace InTime
         private TextBlock text;
         private int bpm;
         private int timeSinceBeat = 0;
+        private int timeSinceTick = 0;
 
         public BPMTicker(TextBlock text)
         {
@@ -29,12 +30,15 @@ namespace InTime
 
         public int shouldTick() {
             timeSinceBeat++;
+            timeSinceTick++;
+            
             var bpmTick = (60.0 / bpm) * 30;
             if (timeSinceBeat >= bpmTick) {
                 timeSinceBeat = 0;
                 return 2;
             }
-            if (timeSinceBeat >= bpmTick / 8) {
+            if (timeSinceTick >= bpmTick / 4) {
+                timeSinceTick = 0;
                 return 1;
             }
             return 0;

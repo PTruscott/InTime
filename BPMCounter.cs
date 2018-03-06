@@ -14,14 +14,14 @@ namespace InTime
         {
             this.text = text;
             text.Text = "N/A BPM";
-            bpm = 0;
+            bpm = 1;
         }
 
         public void Update(double bpm)
         {
-            if (bpm == 0) bpm = 1;
+            if (bpm < 1) bpm = 1;
             this.bpm = (int)Math.Round(bpm);
-            text.Text = bpm + " BPM";
+            text.Text = this.bpm + " BPM";
         }
 
         public int getBPM() {

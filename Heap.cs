@@ -202,8 +202,6 @@ namespace InTime
 
         protected override bool Dominates(T x, T y)
         {
-            //Console.WriteLine(x);
-            //Console.WriteLine(y);
             return Comparer.Compare(x, y) <= 0;
         }
     }

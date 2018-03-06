@@ -111,8 +111,15 @@
         /// </summary>
         private List<Peak> leftArmPeaks;
 
+        /// <summary>
+        /// If bpm is being calculated, it stops notes playing
+        /// </summary>
         private bool isCalculatingBPM;
 
+        /// <summary>
+        /// The heap of currently playing notes, stored as NoteTuples
+        /// Used to end notes playing
+        /// </summary>
         private Heap<NoteTuple> playingNotes;
 
 
@@ -121,6 +128,13 @@
         /// </summary>
         bool leftLegWasRaised = false;
         bool rightLegWasRaised = false;
+
+        enum ArmPos { Lowered, Normal, Raised };
+        ArmPos prevArmPos = ArmPos.Normal;
+
+        /// <summary>
+        /// The length of the arm
+        /// </summary>
         double armLength;
 
         /// <summary>
@@ -137,6 +151,7 @@
         int currentInstrument = 91;
         //a recorded list of the ints
         private List<Note[]> recordedNotes;
+        int currentNoteValue = 60;
 
         /// <summary>
         /// Used to be able to end playing notes
@@ -156,6 +171,7 @@
            int message);
 
         int handle = 0;
+
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -371,6 +387,10 @@
             }
         }
 
+        /// <summary>
+        /// The main update loop, happens every frame
+        /// </summary>
+        /// <param name="skeleton">the skeleton data of the player</param>
         private void Update(Skeleton skeleton)
         {
             CalculateDist(skeleton);
@@ -378,6 +398,8 @@
             UpdateGraphs();
 
             ChangeInstrument(skeleton);
+
+            armLength = CalculateArmLength(skeleton);
 
             foreach (Peak p in leftArmPeaks)
             {
@@ -414,6 +436,18 @@
             }
             else
             {
+                if (typeSlider.Value == 0)
+                {
+
+                    var wasArmMoved = WasArmMoved(skeleton);
+                    if (wasArmMoved != ArmPos.Normal)
+                    {
+                        Console.WriteLine("Arm moved!");
+                        prevArmPos = ArmPos.Normal;
+                        if (wasArmMoved == ArmPos.Raised) currentNoteValue++;
+                        else currentNoteValue--;
+                    }
+                }
                 var shouldTick = bpm.shouldTick();
 
                 if (shouldTick > 0)
@@ -425,26 +459,27 @@
                         EndNote(handle, endingNote);
                     }
 
-                    //play a note
+                    int duration = 60;
 
-                    armLength = CalculateArmLength(skeleton);
-
-                    int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
-
-                    double duration = 0;
-
+                    int noteValue = currentNoteValue;
                     var dist = skeleton.Joints[JointType.ShoulderLeft].Position.X - skeleton.Joints[JointType.WristLeft].Position.X;
-                    duration = (dist/Convert.ToDouble(armLength)) * 100;
 
+                    //play a note
+                    if (typeSlider.Value == 1)
+                    {
+                        int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
+                        duration = (int)((dist / Convert.ToDouble(armLength)) * 100);
+                        noteValue = armHeight;
+                    }
                     if (duration > 0)
                     {
-                        Note thisNote = new Note(armHeight, currentInstrument, (int)duration);
+                        Note thisNote = new Note(noteValue, currentInstrument, duration);
                         //Console.WriteLine("Playing note! " + currentTime + " Duration: "+duration);
                         PlayNote(handle, thisNote);
                         if (isRecording)
                         {
                             recordedNotes[recordedNotes.Count - 1][beatCounter] = thisNote;
-                            Console.WriteLine("Recording note at " + beatCounter + " " + recordedNotes[recordedNotes.Count - 1][beatCounter]);
+                            //Console.WriteLine("Recording note at " + beatCounter + " " + recordedNotes[recordedNotes.Count - 1][beatCounter]);
                         }
                     }
 
@@ -458,7 +493,7 @@
                             if (recordedNotes[i][beatCounter] != null)
                             {
                                 PlayNote(handle, recordedNotes[i][beatCounter]);
-                                Console.WriteLine("Playing recorded note at: " + beatCounter + " out of " + recordedNotes[i].Count());
+                                //Console.WriteLine("Playing recorded note at: " + beatCounter + " out of " + recordedNotes[i].Count());
                             }
                         }
                     }
@@ -540,12 +575,31 @@
             return 360 - (((Math.Atan2(yDiff, xDiff) * 180.0 / Math.PI) + 450) % 360);
         }
 
+        private ArmPos WasArmMoved(Skeleton skeleton)
+        {
+            //0' is directly up
+            var angle = CalculateJointAngle(skeleton.Joints[JointType.ElbowLeft], skeleton.Joints[JointType.WristLeft]);
+            Console.WriteLine("Angle: " + angle);
+            if (angle > 305)
+            {
+                prevArmPos = ArmPos.Raised;
+                return ArmPos.Normal;
+            }
+            //slightly angled down
+            if (angle < 235)
+            {
+                prevArmPos = ArmPos.Lowered;
+                return ArmPos.Normal;
+            }
+            return prevArmPos;
+        }
+
         private Boolean LegStomp(Boolean left, Skeleton skeleton)
         {
             if (left)
             {
                 //if the left leg is raised
-                if (legRaised(true, skeleton))
+                if (LegRaised(true, skeleton))
                 {
                     //mark it as raised
                     leftLegWasRaised = true;
@@ -565,7 +619,7 @@
             {
                 //Console.WriteLine("gets past left leg");
                 //if the right leg is raised
-                if (legRaised(false, skeleton))
+                if (LegRaised(false, skeleton))
                 {
                     //mark as raised
                     rightLegWasRaised = true;
@@ -585,16 +639,16 @@
             return false;
         }
 
-        private Boolean legRaised(Boolean left, Skeleton skeleton)
+        private Boolean LegRaised(Boolean left, Skeleton skeleton)
         {
             double legLength = CalculateLegLength(skeleton);
             if (left)
             {
-                if ((skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y) < legLength * 0.75) return true;
+                if ((skeleton.Joints[JointType.HipLeft].Position.Y - skeleton.Joints[JointType.AnkleLeft].Position.Y) < legLength * 0.8) return true;
             }
             else
             {
-                if ((skeleton.Joints[JointType.HipRight].Position.Y - skeleton.Joints[JointType.AnkleRight].Position.Y) < legLength * 0.75) return true;
+                if ((skeleton.Joints[JointType.HipRight].Position.Y - skeleton.Joints[JointType.AnkleRight].Position.Y) < legLength * 0.8) return true;
             }
             return false;
         }
@@ -910,27 +964,6 @@
             }
 
             drawingContext.DrawLine(drawPen, SkeletonPointToScreen(joint0.Position), SkeletonPointToScreen(joint1.Position));
-        }
-
-        /// <summary>
-        /// Handles the checking or unchecking of the seated mode combo box
-        /// </summary>
-        /// <param name="sender">object sending the event</param>
-        /// <param name="e">event arguments</param>
-        private void CheckBoxSeatedModeChanged(object sender, RoutedEventArgs e)
-        {
-
-            if (sensor != null)
-            {
-                if (checkBoxSeatedMode.IsChecked.GetValueOrDefault())
-                {
-                    sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
-                }
-                else
-                {
-                    sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Default;
-                }
-            }
         }
     }
 }

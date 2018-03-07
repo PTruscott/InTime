@@ -178,21 +178,21 @@
         /// </summary>
         public MainWindow()
         {
-            //opens the midi out 
-            midiOutOpen(ref handle, 0, null, 0, 0);
-
-            //sets up four channels with four different instruments.  
-            midiOutShortMsg(handle, 0x000051C1);
-            midiOutShortMsg(handle, 0x000022C2);
-            midiOutShortMsg(handle, 0x000001C3);
-            midiOutShortMsg(handle, 0x000041C4);
-
             Points = new List<double>[2];
             recordedNotes = new List<Note[]>();
             leftArmPeaks = new List<Peak>();
 
-            numberOfBeats = loopLength * 4;
+            numberOfBeats = loopLength * 2;
             playingNotes = new MinHeap<NoteTuple>();
+
+            //opens the midi out 
+            midiOutOpen(ref handle, 0, null, 0, 0);
+
+            //sets up four channels with four different instruments.  
+            midiOutShortMsg(handle, 0x000056C1);
+            midiOutShortMsg(handle, 0x000028C2);
+            midiOutShortMsg(handle, 0x000004C3);
+            midiOutShortMsg(handle, 0x00006CC4);
 
             //var testNotes = new MinHeap<NoteTuple>(new[] {new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1))});
             //var testNotes = new MinHeap<Note>(new[] { new Note(0, 1, 2), new Note(0, 1, 3), new Note(0, 1, 2) });
@@ -227,9 +227,9 @@
         private void PlayNote(int handle, Note thisNote)
         {
             //don't want drumbeats to be recorded
-            if (thisNote.getInstrument() != 99)
+            if (thisNote.GetInstrument() != 99)
             {
-                playingNotes.Add(new NoteTuple(thisNote.getDuration() + currentTime, thisNote));
+                playingNotes.Add(new NoteTuple(thisNote.GetDuration() + currentTime, thisNote));
             }
             MidiNote(handle, thisNote);
         }
@@ -243,9 +243,10 @@
         {
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
-            string velHex = (thisNote.getDuration()).ToString("X");
-            string noteHex = thisNote.getNote().ToString("X");
-            string insHex = thisNote.getInstrument().ToString();
+            string velHex = 60.ToString("X");
+            if (typeSlider.Value == 1) velHex = (thisNote.GetDuration()/2).ToString("X");
+            string noteHex = thisNote.GetNote().ToString("X");
+            string insHex = thisNote.GetInstrument().ToString();
             //builds into a hex string
             string s = string.Format("0x00{0}{1}{2}", velHex, noteHex, insHex);
             //converts to an integer
@@ -403,7 +404,7 @@
 
             foreach (Peak p in leftArmPeaks)
             {
-                p.timeStep();
+                p.TimeStep();
             }
 
             //check if right leg stomped
@@ -442,24 +443,24 @@
                     var wasArmMoved = WasArmMoved(skeleton);
                     if (wasArmMoved != ArmPos.Normal)
                     {
-                        Console.WriteLine("Arm moved!");
+                        //Console.WriteLine("Arm moved!");
                         prevArmPos = ArmPos.Normal;
                         if (wasArmMoved == ArmPos.Raised) currentNoteValue++;
                         else currentNoteValue--;
                     }
                 }
-                var shouldTick = bpm.shouldTick();
+                var shouldTick = bpm.ShouldTick();
 
                 if (shouldTick > 0)
                 {
                     //remove playing notes
-                    while (playingNotes.Count > 0 && playingNotes.Min().getTimeEnd() < currentTime) {
+                    while (playingNotes.Count > 0 && playingNotes.Min().GetTimeEnd() < currentTime) {
                         Note endingNote = playingNotes.ExtractDominating().getNote();
-                        endingNote = endingNote.endNote();
+                        endingNote = endingNote.EndNote();
                         EndNote(handle, endingNote);
                     }
 
-                    int duration = 60;
+                    int duration = 1;
 
                     int noteValue = currentNoteValue;
                     var dist = skeleton.Joints[JointType.ShoulderLeft].Position.X - skeleton.Joints[JointType.WristLeft].Position.X;
@@ -468,7 +469,7 @@
                     if (typeSlider.Value == 1)
                     {
                         int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
-                        duration = (int)((dist / Convert.ToDouble(armLength)) * 100);
+                        duration = (int)((dist / Convert.ToDouble(armLength)) * 8);
                         noteValue = armHeight;
                     }
                     if (duration > 0)
@@ -479,7 +480,7 @@
                         if (isRecording)
                         {
                             recordedNotes[recordedNotes.Count - 1][beatCounter] = thisNote;
-                            //Console.WriteLine("Recording note at " + beatCounter + " " + recordedNotes[recordedNotes.Count - 1][beatCounter]);
+                            Console.WriteLine("Recording note at " + beatCounter + " " + recordedNotes[recordedNotes.Count - 1][beatCounter]);
                         }
                     }
 
@@ -579,7 +580,6 @@
         {
             //0' is directly up
             var angle = CalculateJointAngle(skeleton.Joints[JointType.ElbowLeft], skeleton.Joints[JointType.WristLeft]);
-            Console.WriteLine("Angle: " + angle);
             if (angle > 305)
             {
                 prevArmPos = ArmPos.Raised;
@@ -665,19 +665,19 @@
             {
                 if (lastTime == -1)
                 {
-                    lastTime = p.getTimeStamp();
+                    lastTime = p.GetTimeStamp();
                 }
                 else
                 {
                     if (dif == -1)
                     {
-                        dif = p.getTimeStamp() - lastTime;
+                        dif = p.GetTimeStamp() - lastTime;
                     }
                     else
                     {
-                        dif += p.getTimeStamp() - lastTime;
+                        dif += p.GetTimeStamp() - lastTime;
                     }
-                    lastTime = p.getTimeStamp();
+                    lastTime = p.GetTimeStamp();
                 }
             }
             dif /= (leftArmPeaks.Count - 1);
@@ -726,7 +726,7 @@
             {
                 //if the third value is less than the second the second must be a peak
                 //wooo magic number to avoid tremours
-                if (point3 < point2 && ((leftArmPeaks.Count == 0 && point2 > 0.1) || point2 > leftArmPeaks[leftArmPeaks.Count - 1].getRDitch() + 0.2))
+                if (point3 < point2 && ((leftArmPeaks.Count == 0 && point2 > 0.1) || point2 > leftArmPeaks[leftArmPeaks.Count - 1].GetRDitch() + 0.2))
                 {
                     //first peak, so lDitch is 0
                     if (leftArmPeaks.Count == 0)
@@ -736,7 +736,7 @@
                     else
                     {
                         //the lditch of the new peak is the rditch of the previous
-                        leftArmPeaks.Add(new Peak(leftArmPeaks[leftArmPeaks.Count - 1].getRDitch(), point1, point2, NumberOfPoints));
+                        leftArmPeaks.Add(new Peak(leftArmPeaks[leftArmPeaks.Count - 1].GetRDitch(), point1, point2, NumberOfPoints));
                     }
                 }
                 //if not, the last peak is more pronouced
@@ -744,7 +744,7 @@
                 {
                     if (leftArmPeaks.Count > 0)
                     {
-                        (leftArmPeaks[leftArmPeaks.Count - 1]).setRDitch(point1);
+                        (leftArmPeaks[leftArmPeaks.Count - 1]).SetRDitch(point1);
                     }
                 }
             }

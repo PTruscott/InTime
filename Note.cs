@@ -22,30 +22,30 @@ namespace InTime
             duration = 0;
         }
 
-        public int getInstrument()
+        public int GetInstrument()
         {
             return instrument;
         }
 
-        public int getNote()
+        public int GetNote()
         {
             return note;
         }
 
-        public int getDuration()
+        public int GetDuration()
         {
             return duration;
         }
 
-        public Note endNote()
+        public Note EndNote()
         {
             return new Note(note, instrument);
         }
 
         public int CompareTo(Note other)
         {
-            if (duration < other.getDuration()) return -1;
-            if (duration == other.getDuration()) return 0;
+            if (duration < other.GetDuration()) return -1;
+            if (duration == other.GetDuration()) return 0;
             return 1;
         }
 
@@ -66,7 +66,7 @@ namespace InTime
             this.timeEnd = timeEnd;
         }
 
-        public int getTimeEnd()
+        public int GetTimeEnd()
         {
             return timeEnd;
         }
@@ -78,7 +78,7 @@ namespace InTime
 
         public int CompareTo(NoteTuple other)
         {
-            if (timeEnd < other.getTimeEnd()) return -1;
+            if (timeEnd < other.GetTimeEnd()) return -1;
             return 1;   
         }
     }

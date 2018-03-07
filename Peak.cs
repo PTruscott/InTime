@@ -16,23 +16,23 @@
             this.height = height;
         }
 
-        public double getSize() {
+        public double GetSize() {
             return size;
         }
 
-        public double getRDitch() {
+        public double GetRDitch() {
             return rDitch;
         }
 
-        public int getTimeStamp() {
+        public int GetTimeStamp() {
             return timeStamp;
         }
 
-        public void timeStep() {
+        public void TimeStep() {
             timeStamp--;
         }
 
-        public void setRDitch(double rDitch) {
+        public void SetRDitch(double rDitch) {
             this.rDitch = rDitch;
             size = height - (lDitch + rDitch) / 2;
         }

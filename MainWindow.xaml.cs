@@ -148,10 +148,13 @@
         bool shouldRecord = false;
 
         //specifies the channel on which is currently playing
-        int currentInstrument = 91;
+        private int currentInstrument = 91;
         //a recorded list of the ints
         private List<Note[]> recordedNotes;
-        int currentNoteValue = 60;
+        private int currentNoteValue = 60;
+        private Node currentDrum = new Kick();
+        private bool playKick = true;
+
 
         /// <summary>
         /// Used to be able to end playing notes
@@ -171,7 +174,6 @@
            int message);
 
         int handle = 0;
-
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -222,6 +224,8 @@
             bpm = new BPMTicker(leftText);
 
             isCalculatingBPM = true;
+
+            currentDrum = new Kick();
         }
 
         private void PlayNote(int handle, Note thisNote)
@@ -412,14 +416,13 @@
             {
                 if (isCalculatingBPM) bpmCalculatingLabel.Text = "BPM";
                 else bpmCalculatingLabel.Text = "BPM (Calculating...)";
-                Console.WriteLine(isCalculatingBPM);
                 isCalculatingBPM = !isCalculatingBPM;
-                Console.WriteLine("Right leg stomp");
+                //Console.WriteLine("Right leg stomp");
             }
             //check if left leg stomped
             else if (LegStomp(true, skeleton))
             {
-                Console.WriteLine("Left leg stomp");
+                //Console.WriteLine("Left leg stomp");
                 //if currently recording and new record message comes in then wipe and start again
                 if (isRecording) recordedNotes.RemoveAt(recordedNotes.Count - 1);
                 recordedNotes.Add(new Note[numberOfBeats]);
@@ -454,7 +457,8 @@
                 if (shouldTick > 0)
                 {
                     //remove playing notes
-                    while (playingNotes.Count > 0 && playingNotes.Min().GetTimeEnd() < currentTime) {
+                    while (playingNotes.Count > 0 && playingNotes.Min().GetTimeEnd() < currentTime)
+                    {
                         Note endingNote = playingNotes.ExtractDominating().getNote();
                         endingNote = endingNote.EndNote();
                         EndNote(handle, endingNote);
@@ -469,7 +473,7 @@
                     if (typeSlider.Value == 1)
                     {
                         int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
-                        duration = (int)((dist / Convert.ToDouble(armLength)) * 8);
+                        duration = (int)((dist / Convert.ToDouble(armLength)) * 100);
                         noteValue = armHeight;
                     }
                     if (duration > 0)
@@ -499,12 +503,25 @@
                         }
                     }
 
-                    //play drum beat and update recording.
-
-                    if (shouldTick == 2)
+                    if (shouldTick == 1)
                     {
-                        PlayNote(handle, new Note(39, 99, 30));
-                        if (currentTick > 1) currentTick--;     
+
+                        //play drum beat, needs to take what type
+                        if (currentDrum.GetType() != typeof(Rest))
+                        {
+                            if (currentDrum.GetType() == typeof(HiHat)) PlayNote(handle, new Note(currentDrum.GetNote(), 99, 80));
+                            else PlayNote(handle, new Note(currentDrum.GetNote(), 99, 127));
+
+                        }
+                        currentDrum = currentDrum.GetNextNode();
+                        Console.WriteLine("Playing note: " + currentDrum.GetType());
+                    }
+
+                    // update recording.
+                    // shouldTick == 2
+                    else
+                    {
+                        if (currentTick > 1) currentTick--;
                         else
                         {
                             currentTick = loopLength;
@@ -530,7 +547,19 @@
 
                     beatCounter++;
                     currentTime++;
-                    if (beatCounter >= numberOfBeats) beatCounter = 0;
+                    if (beatCounter >= numberOfBeats)
+                    {
+                        beatCounter = 0;
+                    }
+                    if (beatCounter % 2 == 0)
+                    { 
+                        currentDrum = new Kick();
+                        if (playKick) PlayNote(handle, new Note(currentDrum.GetNote(), 99, 127));
+                        else PlayNote(handle, new Note(38, 99, 127));
+                        playKick = !playKick;
+                        currentDrum = currentDrum.GetNextNode();
+                    }
+
                 }
             }
         }

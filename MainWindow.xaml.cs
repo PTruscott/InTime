@@ -146,6 +146,7 @@
         int currentTick;
         bool isRecording = false;
         bool shouldRecord = false;
+        double energy = 0.2;
 
         //specifies the channel on which is currently playing
         private int currentInstrument = 91;
@@ -248,7 +249,7 @@
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
             string velHex = 60.ToString("X");
-            if (typeSlider.Value == 1) velHex = (thisNote.GetDuration()/2).ToString("X");
+            if (typeSlider.Value == 1) velHex = (thisNote.GetDuration() / 2).ToString("X");
             string noteHex = thisNote.GetNote().ToString("X");
             string insHex = thisNote.GetInstrument().ToString();
             //builds into a hex string
@@ -442,8 +443,8 @@
             {
                 if (typeSlider.Value == 0)
                 {
-
                     var wasArmMoved = WasArmMoved(skeleton);
+
                     if (wasArmMoved != ArmPos.Normal)
                     {
                         //Console.WriteLine("Arm moved!");
@@ -452,6 +453,7 @@
                         else currentNoteValue--;
                     }
                 }
+
                 var shouldTick = bpm.ShouldTick();
 
                 if (shouldTick > 0)
@@ -484,7 +486,7 @@
                         if (isRecording)
                         {
                             recordedNotes[recordedNotes.Count - 1][beatCounter] = thisNote;
-                            Console.WriteLine("Recording note at " + beatCounter + " " + recordedNotes[recordedNotes.Count - 1][beatCounter]);
+                            //Console.WriteLine("Recording note at " + beatCounter + " " + recordedNotes[recordedNotes.Count - 1][beatCounter]);
                         }
                     }
 
@@ -509,12 +511,12 @@
                         //play drum beat, needs to take what type
                         if (currentDrum.GetType() != typeof(Rest))
                         {
+                            currentDrum.UpdateProbabilites(energy);
                             if (currentDrum.GetType() == typeof(HiHat)) PlayNote(handle, new Note(currentDrum.GetNote(), 99, 80));
                             else PlayNote(handle, new Note(currentDrum.GetNote(), 99, 127));
 
                         }
                         currentDrum = currentDrum.GetNextNode();
-                        Console.WriteLine("Playing note: " + currentDrum.GetType());
                     }
 
                     // update recording.
@@ -552,16 +554,34 @@
                         beatCounter = 0;
                     }
                     if (beatCounter % 2 == 0)
-                    { 
+                    {
                         currentDrum = new Kick();
                         if (playKick) PlayNote(handle, new Note(currentDrum.GetNote(), 99, 127));
                         else PlayNote(handle, new Note(38, 99, 127));
                         playKick = !playKick;
+                        energy = GetEnergy();
+                        currentDrum.UpdateProbabilites(energy);
                         currentDrum = currentDrum.GetNextNode();
                     }
 
                 }
             }
+        }
+
+
+        private double GetEnergy()
+        {
+            double energy = 0;
+            var Values = Points[1].ToArray();
+            for (int i = Values.Length / 2; i < Values.Length; i++)
+            {
+                energy += Math.Abs(Values[i]-Values[i-1]);
+            }
+            energy -= 3;
+            energy /= 5;
+            energy = Math.Max(0, Math.Min(1, energy));
+            Console.WriteLine("Energy: " + energy);
+            return energy;
         }
 
 
@@ -599,7 +619,6 @@
 
         private double CalculateJointAngle(Joint j2, Joint j1)
         {
-
             float xDiff = j2.Position.X - j1.Position.X;
             float yDiff = j2.Position.Y - j1.Position.Y;
             return 360 - (((Math.Atan2(yDiff, xDiff) * 180.0 / Math.PI) + 450) % 360);
@@ -712,6 +731,7 @@
             dif /= (leftArmPeaks.Count - 1);
             double bpmNum = dif / RefreshRate;
             bpmNum = 60 / bpmNum;
+            if ((int)bpmNum == 0) bpmNum = 1;
             bpm.Update((int)bpmNum);
 
             bpmCounterLabel.Text = ((int)(bpmNum)).ToString();
@@ -733,8 +753,8 @@
             else
             {
                 var ratio = 1.5 / 128;
-                Points[0].Add(ratio*CalculateJointHeight(skeleton.Joints[JointType.WristRight], skeleton.Joints[JointType.ShoulderRight], armLength));
-                Points[1].Add(ratio*CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength));
+                Points[0].Add(ratio * CalculateJointHeight(skeleton.Joints[JointType.WristRight], skeleton.Joints[JointType.ShoulderRight], armLength));
+                Points[1].Add(ratio * CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength));
             }
             for (int i = 0; i < Points.Length; i++)
             {

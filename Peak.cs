@@ -8,31 +8,37 @@
         private int timeStamp;
         private double height;
 
-        public Peak(double lDitch, double rDitch, double height, int timeStamp) {
-            size = height-(lDitch+rDitch)/2;
+        public Peak(double lDitch, double rDitch, double height, int timeStamp)
+        {
+            size = height - (lDitch + rDitch) / 2;
             this.lDitch = lDitch;
             this.rDitch = rDitch;
             this.timeStamp = timeStamp;
             this.height = height;
         }
 
-        public double GetSize() {
+        public double GetSize()
+        {
             return size;
         }
 
-        public double GetRDitch() {
+        public double GetRDitch()
+        {
             return rDitch;
         }
 
-        public int GetTimeStamp() {
+        public int GetTimeStamp()
+        {
             return timeStamp;
         }
 
-        public void TimeStep() {
+        public void TimeStep()
+        {
             timeStamp--;
         }
 
-        public void SetRDitch(double rDitch) {
+        public void SetRDitch(double rDitch)
+        {
             this.rDitch = rDitch;
             size = height - (lDitch + rDitch) / 2;
         }

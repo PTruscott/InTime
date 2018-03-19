@@ -51,7 +51,7 @@ namespace InTime
 
         public override string ToString()
         {
-            return "note: " + note + " duration: " + duration+ " instrument: " + instrument;
+            return "note: " + note + " duration: " + duration + " instrument: " + instrument;
         }
     }
 
@@ -79,7 +79,7 @@ namespace InTime
         public int CompareTo(NoteTuple other)
         {
             if (timeEnd < other.GetTimeEnd()) return -1;
-            return 1;   
+            return 1;
         }
     }
 }

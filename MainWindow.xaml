@@ -191,8 +191,8 @@
             <Line Margin="62, 40, 62, 40" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="LightGray" StrokeThickness="2"></Line>
             <Line Name="instrumentLine" Margin="60, 40, 60, 103" X1="0" Y1="0" X2="0" Y2="1" Stretch="Uniform" Stroke="Blue" StrokeThickness="2" RenderTransformOrigin="0, 1">
                 <Line.RenderTransform>
-                    <RotateTransform Angle="{Binding ElementName=labelAngleForIntrument, Path=Text}" /> 
-                </Line.RenderTransform> 
+                    <RotateTransform Angle="{Binding ElementName=labelAngleForIntrument, Path=Text}" />
+                </Line.RenderTransform>
             </Line>
         </Grid>
 
@@ -205,7 +205,7 @@
             <!-- needs 640x480 as highest res kinect can go -->
             <Image Name="Image" Width="640" Height="480"/>
         </Viewbox>
-        
+
         <!-- checkbox centre alignment -->
         <Grid Grid.Row="3" Grid.Column="1">
             <Grid.RowDefinitions>

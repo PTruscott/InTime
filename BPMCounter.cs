@@ -26,20 +26,24 @@ namespace InTime
             bpmTick = (60.0 / this.bpm) * 30;
         }
 
-        public int getBPM() {
+        public int getBPM()
+        {
             return bpm;
         }
 
-        public int ShouldTick() {
+        public int ShouldTick()
+        {
             timeSinceBeat++;
             timeSinceTick++;
-            
-            if (timeSinceBeat >= bpmTick) {
+
+            if (timeSinceBeat >= bpmTick)
+            {
                 timeSinceBeat = 0;
                 timeSinceTick = 0;
                 return 2;
             }
-            if (timeSinceTick >= bpmTick / 2) {
+            if (timeSinceTick >= bpmTick / 2)
+            {
                 timeSinceTick = 0;
                 return 1;
             }

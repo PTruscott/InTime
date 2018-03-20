@@ -146,7 +146,7 @@
         int currentTick;
         bool isRecording = false;
         bool shouldRecord = false;
-        double energy = 0.2;
+        double energy = 0;
 
         //specifies the channel on which is currently playing
         private int currentInstrument = 91;
@@ -156,6 +156,8 @@
         private Node currentDrum = new Kick();
         private bool playKick = true;
 
+
+        private int[] cm = {0, 2, 3, 5, 7, 8, 10};
 
         /// <summary>
         /// Used to be able to end playing notes
@@ -234,7 +236,7 @@
             //don't want drumbeats to be recorded
             if (thisNote.GetInstrument() != 99)
             {
-                playingNotes.Add(new NoteTuple(thisNote.GetDuration() + currentTime, thisNote));
+                playingNotes.Add(new NoteTuple(4 + currentTime, thisNote));
             }
             MidiNote(handle, thisNote);
         }
@@ -249,7 +251,24 @@
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
             string velHex = 60.ToString("X");
-            if (typeSlider.Value == 1) velHex = (thisNote.GetDuration() / 2).ToString("X");
+            if (typeSlider.Value == 1)
+            {
+                var vel = (thisNote.GetDuration() * 6);
+                switch (thisNote.GetInstrument())
+                {
+                    case 94:
+                        vel *= 3;
+                        break;
+                    case 93: 
+                        vel *= 3;
+                        break;
+                    case 92:
+                        vel *= 2;
+                        break;
+                }
+
+                velHex = vel.ToString("X");
+            }
             string noteHex = thisNote.GetNote().ToString("X");
             string insHex = thisNote.GetInstrument().ToString();
             //builds into a hex string
@@ -475,7 +494,7 @@
                     if (typeSlider.Value == 1)
                     {
                         int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
-                        duration = (int)((dist / Convert.ToDouble(armLength)) * 100);
+                        duration = (int)((dist / Convert.ToDouble(armLength)) * 12);
                         noteValue = armHeight;
                     }
                     if (duration > 0)
@@ -504,6 +523,7 @@
                             }
                         }
                     }
+                    currentTime++;
 
                     if (shouldTick == 1)
                     {
@@ -512,8 +532,8 @@
                         if (currentDrum.GetType() != typeof(Rest))
                         {
                             currentDrum.UpdateProbabilites(energy);
-                            if (currentDrum.GetType() == typeof(HiHat)) PlayNote(handle, new Note(currentDrum.GetNote(), 99, 80));
-                            else PlayNote(handle, new Note(currentDrum.GetNote(), 99, 127));
+                            if (currentDrum.GetType() == typeof(HiHat)) PlayNote(handle, new Note(currentDrum.GetNote(), 99, 90));
+                            else PlayNote(handle, new Note(currentDrum.GetNote(), 99, 117));
 
                         }
                         currentDrum = currentDrum.GetNextNode();
@@ -548,7 +568,6 @@
                     }
 
                     beatCounter++;
-                    currentTime++;
                     if (beatCounter >= numberOfBeats)
                     {
                         beatCounter = 0;

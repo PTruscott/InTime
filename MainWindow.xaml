@@ -219,11 +219,9 @@
             <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
                 Continuous
             </TextBlock>
-            <TextBlock Grid.Row="1" Grid.Column="0"  HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
-                Step Mode
-            </TextBlock>
             <Slider Name="typeSlider" Grid.Row ="0" Grid.Column="1" Width="20" Height="80" Value="1" Orientation="Vertical" Grid.RowSpan="2"
                     VerticalAlignment="Center"
+                    Visibility="Hidden"
                     IsSnapToTickEnabled="True" Maximum="1"
                     TickFrequency="1"
                     AutoToolTipPrecision="2"

@@ -156,8 +156,18 @@
         private Node currentDrum = new Kick();
         private bool playKick = true;
 
-
+        /// <summary>
+        /// A list of variables to lock to scales
+        /// </summary>
+        private int numOctaves = 8;
+        private int maxNotes = 103;
         private int[] cm = {0, 2, 3, 5, 7, 8, 10};
+        private int[] c = {0, 2, 4, 5, 7, 9, 11};
+        private int[] ca = {0, 4, 7};
+        private int[] mp = { 0, 3, 5, 7, 10 };
+
+        private int[] currentScale;
+        private bool useScale = true;
 
         /// <summary>
         /// Used to be able to end playing notes
@@ -186,6 +196,12 @@
             Points = new List<double>[2];
             recordedNotes = new List<Note[]>();
             leftArmPeaks = new List<Peak>();
+
+            if (useScale)
+            {
+                currentScale = cm;
+                maxNotes = currentScale.Length * numOctaves;
+            }
 
             numberOfBeats = loopLength * 2;
             playingNotes = new MinHeap<NoteTuple>();
@@ -257,7 +273,7 @@
                 switch (thisNote.GetInstrument())
                 {
                     case 94:
-                        vel *= 3;
+                        vel *= 4;
                         break;
                     case 93: 
                         vel *= 3;
@@ -493,9 +509,26 @@
                     //play a note
                     if (typeSlider.Value == 1)
                     {
-                        int armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
+                        double armHeight = CalculateJointHeight(skeleton.Joints[JointType.WristLeft], skeleton.Joints[JointType.ShoulderLeft], armLength);
                         duration = (int)((dist / Convert.ToDouble(armLength)) * 12);
-                        noteValue = armHeight;
+                        if (useScale)
+                        {
+                            var newNoteVal = Math.Floor(armHeight / currentScale.Length) * currentScale.Length;
+                            //Console.WriteLine("New Note Val: " + newNoteVal);
+                            var octave = newNoteVal / currentScale.Length;
+                            //Console.WriteLine("Octave: " + octave);
+                            var leftOver = armHeight - newNoteVal;
+                            //Console.WriteLine("Leftover: " + leftOver);
+                            noteValue = (int)(12 * octave + currentScale[(int)leftOver]);
+                            //Console.WriteLine("Old note val: " + noteValue);
+                            noteValue = Math.Max(0, noteValue);
+                        }
+                        else
+                        {
+                            noteValue = (int)armHeight;
+                        }
+                        noteValue += 24;
+                        //Console.WriteLine("New Note: " + noteValue);
                     }
                     if (duration > 0)
                     {
@@ -599,7 +632,6 @@
             energy -= 3;
             energy /= 5;
             energy = Math.Max(0, Math.Min(1, energy));
-            Console.WriteLine("Energy: " + energy);
             return energy;
         }
 
@@ -868,12 +900,10 @@
         {
             //Console.WriteLine("Arm lenght: " + armLength);
             armLength *= 0.9;
-            var modifier = 64 / armLength;
+            var modifier = maxNotes/2 / armLength;
             //Console.WriteLine("Modifier: " + modifier);
-            var thing = 64 + modifier * (joint.Position.Y - reference.Position.Y);
-            if (thing > 128) return 128;
-            if (thing < 0) return 0;
-            return (int)(thing);
+            var thing = maxNotes/2 + modifier * (joint.Position.Y - reference.Position.Y);
+            return (int)Math.Max(0, Math.Min(thing, maxNotes));
         }
 
         /// <summary>

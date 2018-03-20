@@ -201,6 +201,7 @@
             {
                 currentScale = cm;
                 maxNotes = currentScale.Length * numOctaves;
+                currentNoteValue = (int)Math.Floor((Convert.ToDouble(numOctaves / 2))+2) * currentScale.Length; 
             }
 
             numberOfBeats = loopLength * 2;
@@ -476,6 +477,8 @@
             }
             else
             {
+                int noteValue = currentNoteValue;
+
                 if (typeSlider.Value == 0)
                 {
                     var wasArmMoved = WasArmMoved(skeleton);
@@ -484,8 +487,26 @@
                     {
                         //Console.WriteLine("Arm moved!");
                         prevArmPos = ArmPos.Normal;
+
                         if (wasArmMoved == ArmPos.Raised) currentNoteValue++;
                         else currentNoteValue--;
+                        currentNoteValue = Math.Max(24, Math.Min(currentNoteValue, 127));
+                        noteValue = currentNoteValue;
+                       
+                        if (useScale)
+                        {
+                            var newNoteVal = Math.Floor(Convert.ToDouble(currentNoteValue) / currentScale.Length) * currentScale.Length;
+                            //Console.WriteLine("New Note Val: " + newNoteVal);
+                            var octave = newNoteVal / currentScale.Length;
+                            //Console.WriteLine("Octave: " + octave);
+                            var leftOver = currentNoteValue - newNoteVal;
+                            //Console.WriteLine("Leftover: " + leftOver);
+                            var tempNote = (int)(12 * octave + currentScale[(int)leftOver]);
+                            //Console.WriteLine("Old note val: " + noteValue);
+                            noteValue = Math.Max(24, tempNote);
+                        }
+                        Console.WriteLine(currentNoteValue);
+                        Console.WriteLine("Note value: " + noteValue);
                     }
                 }
 
@@ -501,9 +522,8 @@
                         EndNote(handle, endingNote);
                     }
 
-                    int duration = 1;
+                    int duration = 3;
 
-                    int noteValue = currentNoteValue;
                     var dist = skeleton.Joints[JointType.ShoulderLeft].Position.X - skeleton.Joints[JointType.WristLeft].Position.X;
 
                     //play a note

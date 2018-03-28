@@ -455,13 +455,23 @@
                 //Console.WriteLine("Left leg stomp");
                 //if currently recording and new record message comes in then wipe and start again
                 if (isRecording) recordedNotes.RemoveAt(recordedNotes.Count - 1);
-                recordedNotes.Add(new Note[numberOfBeats]);
-                if (shouldRecord) shouldRecord = false;
-                else shouldRecord = true;
-                isRecording = false;
-                recordingLabel.Text = "Will Record";
-                recordingLabel.Foreground = new SolidColorBrush(Colors.Orange);
-                recordingCounter.Foreground = new SolidColorBrush(Colors.Orange);
+                if (shouldRecord)
+                {
+                    shouldRecord = false;
+                    recordingLabel.Text = "Not Recording";
+                    var greyBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6e6e6e"));
+                    recordingLabel.Foreground = greyBrush;
+                    recordingCounter.Foreground = greyBrush;
+                }
+                else
+                {
+                    recordedNotes.Add(new Note[numberOfBeats]);
+                    shouldRecord = true;
+                    isRecording = false;
+                    recordingLabel.Text = "Will Record";
+                    recordingLabel.Foreground = new SolidColorBrush(Colors.Orange);
+                    recordingCounter.Foreground = new SolidColorBrush(Colors.Orange);
+                }
             }
 
             if (isCalculatingBPM)

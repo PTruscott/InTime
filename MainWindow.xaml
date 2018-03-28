@@ -146,9 +146,6 @@
             <TextBlock Grid.Row="0" HorizontalAlignment="Center" TextAlignment="Center" Padding="0, 10, 0, 10" Foreground="White" FontSize="18">
                 Right Arm
             </TextBlock>
-            <TextBlock Name="rightText" Grid.Row="1" HorizontalAlignment="Center" TextAlignment="Center" Foreground="#59FFFFFF" Padding="0,0,0,10">
-                N/A BPM
-            </TextBlock>
             <!-- minus padding means that there are no unslightly black borders turning up from hiding the axis -->
             <lvc:CartesianChart Grid.Row="2" Margin="-4, 0, 0, 0" Series="{Binding RightArmCollection}" Hoverable="False" DataTooltip="{x:Null}">
                 <lvc:CartesianChart.AxisX>

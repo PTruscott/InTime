@@ -169,7 +169,7 @@
         private int[] currentScale;
         private bool useScale = true;
 
-        /// <summary>
+        /// <summary>   
         /// Used to be able to end playing notes
         /// </summary>
         int currentTime = Int32.MinValue;
@@ -179,11 +179,11 @@
            int instance, int param1, int param2);
 
         [DllImport("winmm.dll")]
-        private static extern int midiOutOpen(ref int handle,
+        private static extern int MidiOutOpen(ref int handle,
            int deviceID, MidiCallBack proc, int instance, int flags);
 
         [DllImport("winmm.dll")]
-        private static extern int midiOutShortMsg(int handle,
+        private static extern int MidiOutShortMsg(int handle,
            int message);
 
         int handle = 0;
@@ -208,20 +208,13 @@
             playingNotes = new MinHeap<NoteTuple>();
 
             //opens the midi out 
-            midiOutOpen(ref handle, 0, null, 0, 0);
+            MidiOutOpen(ref handle, 0, null, 0, 0);
 
             //sets up four channels with four different instruments.  
-            midiOutShortMsg(handle, 0x000056C1);
-            midiOutShortMsg(handle, 0x000028C2);
-            midiOutShortMsg(handle, 0x000004C3);
-            midiOutShortMsg(handle, 0x00006CC4);
-
-            //var testNotes = new MinHeap<NoteTuple>(new[] {new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1)), new NoteTuple(0, new Note(0, 1))});
-            //var testNotes = new MinHeap<Note>(new[] { new Note(0, 1, 2), new Note(0, 1, 3), new Note(0, 1, 2) });
-            //Console.WriteLine(testNotes.ExtractDominating());
-
-
-            //playingNotes = new MinHeap<Tuple<int, Note>>();
+            MidiOutShortMsg(handle, 0x000056C1);
+            MidiOutShortMsg(handle, 0x000028C2);
+            MidiOutShortMsg(handle, 0x000004C3);
+            MidiOutShortMsg(handle, 0x00006CC4);
 
             for (int i = 0; i < Points.Length; i++)
             {
@@ -293,7 +286,7 @@
             //converts to an integer
             int value = (int)new Int32Converter().ConvertFromString(s);
             //plays the note
-            midiOutShortMsg(handle, value);
+            MidiOutShortMsg(handle, value);
         }
 
         private void InitGraphs()
@@ -463,7 +456,8 @@
                 //if currently recording and new record message comes in then wipe and start again
                 if (isRecording) recordedNotes.RemoveAt(recordedNotes.Count - 1);
                 recordedNotes.Add(new Note[numberOfBeats]);
-                shouldRecord = true;
+                if (shouldRecord) shouldRecord = false;
+                else shouldRecord = true;
                 isRecording = false;
                 recordingLabel.Text = "Will Record";
                 recordingLabel.Foreground = new SolidColorBrush(Colors.Orange);
@@ -525,7 +519,7 @@
                     int duration = 3;
 
                     var dist = skeleton.Joints[JointType.ShoulderLeft].Position.X - skeleton.Joints[JointType.WristLeft].Position.X;
-
+                    
                     //play a note
                     if (typeSlider.Value == 1)
                     {

@@ -175,15 +175,15 @@
         int currentTime = Int32.MinValue;
         //private SortedDictionary<int, Note> playingNotes;
 
-        private delegate void MidiCallBack(int handle, int msg,
+        private delegate void midiCallBack(int handle, int msg,
            int instance, int param1, int param2);
 
         [DllImport("winmm.dll")]
-        private static extern int MidiOutOpen(ref int handle,
-           int deviceID, MidiCallBack proc, int instance, int flags);
+        private static extern int midiOutOpen(ref int handle,
+           int deviceID, midiCallBack proc, int instance, int flags);
 
         [DllImport("winmm.dll")]
-        private static extern int MidiOutShortMsg(int handle,
+        private static extern int midiOutShortMsg(int handle,
            int message);
 
         int handle = 0;
@@ -208,13 +208,13 @@
             playingNotes = new MinHeap<NoteTuple>();
 
             //opens the midi out 
-            MidiOutOpen(ref handle, 0, null, 0, 0);
+            midiOutOpen(ref handle, 0, null, 0, 0);
 
             //sets up four channels with four different instruments.  
-            MidiOutShortMsg(handle, 0x000056C1);
-            MidiOutShortMsg(handle, 0x000028C2);
-            MidiOutShortMsg(handle, 0x000004C3);
-            MidiOutShortMsg(handle, 0x00006CC4);
+            midiOutShortMsg(handle, 0x000056C1);
+            midiOutShortMsg(handle, 0x000028C2);
+            midiOutShortMsg(handle, 0x000004C3);
+            midiOutShortMsg(handle, 0x00006CC4);
 
             for (int i = 0; i < Points.Length; i++)
             {
@@ -248,15 +248,15 @@
             {
                 playingNotes.Add(new NoteTuple(4 + currentTime, thisNote));
             }
-            MidiNote(handle, thisNote);
+            midiNote(handle, thisNote);
         }
 
         private void EndNote(int handle, Note thisNote)
         {
-            MidiNote(handle, thisNote);
+            midiNote(handle, thisNote);
         }
 
-        private void MidiNote(int handle, Note thisNote)
+        private void midiNote(int handle, Note thisNote)
         {
             //midiOutOpen(ref handle, 0, null, 0, 0);
             //converts the user input to hex
@@ -286,7 +286,7 @@
             //converts to an integer
             int value = (int)new Int32Converter().ConvertFromString(s);
             //plays the note
-            MidiOutShortMsg(handle, value);
+            midiOutShortMsg(handle, value);
         }
 
         private void InitGraphs()
@@ -499,8 +499,8 @@
                             //Console.WriteLine("Old note val: " + noteValue);
                             noteValue = Math.Max(24, tempNote);
                         }
-                        Console.WriteLine(currentNoteValue);
-                        Console.WriteLine("Note value: " + noteValue);
+                        //Console.WriteLine(currentNoteValue);
+                        //Console.WriteLine("Note value: " + noteValue);
                     }
                 }
 

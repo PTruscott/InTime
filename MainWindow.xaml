@@ -111,8 +111,10 @@
         </Grid>
 
         <Grid Grid.Column="0" Grid.Row="1" Margin="0, 10, 0, 10">
-            <TextBlock Name="recordingCounter" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="50" Foreground="{StaticResource MediumGreyBrush}">N/A</TextBlock>
-            <TextBlock Name="recordingLabel" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="30" Foreground="{StaticResource MediumGreyBrush}">Not Recording</TextBlock>
+            <TextBlock Name="noteLabel" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="50" Foreground="{StaticResource MediumGreyBrush}">N/A</TextBlock>
+            <TextBlock Name="playingNote" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
+                Playing Note
+            </TextBlock>
         </Grid>
 
         <Grid Grid.Column="3" Grid.Row="0" Grid.RowSpan="1" Margin="10, 0, 0, 5">
@@ -209,22 +211,23 @@
                 <RowDefinition/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
-                Continuous
+            <TextBlock Name="recordingCounter" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center" FontSize="50" Foreground="{StaticResource MediumGreyBrush}">
+                N/A
             </TextBlock>
-            <Slider Name="typeSlider" Grid.Row ="0" Grid.Column="1" Width="20" Height="80" Value="1" Orientation="Vertical" Grid.RowSpan="2"
-                    VerticalAlignment="Center"
-                    Visibility="Hidden"
-                    IsSnapToTickEnabled="True" Maximum="1"
-                    TickFrequency="1"
-                    AutoToolTipPrecision="2"
-                    IsMoveToPointEnabled="False"
-             />
+            <TextBlock Name="recordingLabel" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" FontSize="30" Foreground="{StaticResource MediumGreyBrush}" Margin="6, 0, 0, 0">
+                Not Recording
+            </TextBlock>
         </Grid>
+
+        <Slider Name="typeSlider" Grid.Row ="0" Grid.Column="1" Width="20" Height="80" Value="1" Orientation="Vertical" Grid.RowSpan="2"
+                VerticalAlignment="Center"
+                Visibility="Hidden"
+                IsSnapToTickEnabled="True" Maximum="1"
+                TickFrequency="1"
+                AutoToolTipPrecision="2"
+                IsMoveToPointEnabled="False"
+            />
+        
         <!-- bpm bar-->
         <Grid Grid.Row="3" Grid.Column="2">
             <Grid.RowDefinitions>

@@ -161,6 +161,7 @@
         /// </summary>
         private int numOctaves = 8;
         private int maxNotes = 103;
+        private string[] noteList = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
         private int[] cm = {0, 2, 3, 5, 7, 8, 10};
         private int[] c = {0, 2, 4, 5, 7, 9, 11};
         private int[] ca = {0, 4, 7};
@@ -506,6 +507,7 @@
                             var leftOver = currentNoteValue - newNoteVal;
                             //Console.WriteLine("Leftover: " + leftOver);
                             var tempNote = (int)(12 * octave + currentScale[(int)leftOver]);
+
                             //Console.WriteLine("Old note val: " + noteValue);
                             noteValue = Math.Max(24, tempNote);
                         }
@@ -544,6 +546,7 @@
                             var leftOver = armHeight - newNoteVal;
                             //Console.WriteLine("Leftover: " + leftOver);
                             noteValue = (int)(12 * octave + currentScale[(int)leftOver]);
+                            noteLabel.Text = noteList[currentScale[(int)leftOver]];
                             //Console.WriteLine("Old note val: " + noteValue);
                             noteValue = Math.Max(0, noteValue);
                         }

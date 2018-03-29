@@ -445,8 +445,21 @@
             //check if right leg stomped
             if (LegStomp(false, skeleton))
             {
-                if (isCalculatingBPM) bpmCalculatingLabel.Text = "BPM";
-                else bpmCalculatingLabel.Text = "BPM (Calculating...)";
+                if (isCalculatingBPM)
+                {
+                    bpmCalculatingLabel.Text = "BPM";
+
+                    var greyBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6e6e6e"));
+                    bpmCalculatingLabel.Foreground = greyBrush;
+                    bpmCounterLabel.Foreground = greyBrush;
+                }
+                else
+                {
+                    bpmCalculatingLabel.Text = "BPM (Calculating...)";
+                    
+                    bpmCalculatingLabel.Foreground = new SolidColorBrush(Colors.Red);
+                    bpmCounterLabel.Foreground = new SolidColorBrush(Colors.Red);
+                }
                 isCalculatingBPM = !isCalculatingBPM;
                 //Console.WriteLine("Right leg stomp");
             }

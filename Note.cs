@@ -6,20 +6,20 @@ namespace InTime
     {
         private int instrument;
         private int note;
-        private int duration;
+        private int velocity;
 
-        public Note(int note, int instrument, int duration)
+        public Note(int note, int instrument, int velocity)
         {
             this.note = note;
             this.instrument = instrument;
-            this.duration = duration;
+            this.velocity = velocity;
         }
 
         public Note(int note, int instrument)
         {
             this.instrument = instrument;
             this.note = note;
-            duration = 0;
+            velocity = 0;
         }
 
         public int GetInstrument()
@@ -32,9 +32,9 @@ namespace InTime
             return note;
         }
 
-        public int GetDuration()
+        public int GetVelocity()
         {
-            return duration;
+            return velocity;
         }
 
         public Note EndNote()
@@ -44,14 +44,14 @@ namespace InTime
 
         public int CompareTo(Note other)
         {
-            if (duration < other.GetDuration()) return -1;
-            if (duration == other.GetDuration()) return 0;
+            if (velocity < other.GetVelocity()) return -1;
+            if (velocity == other.GetVelocity()) return 0;
             return 1;
         }
 
         public override string ToString()
         {
-            return "note: " + note + " duration: " + duration + " instrument: " + instrument;
+            return "note: " + note + " velocity: " + velocity + " instrument: " + instrument;
         }
     }
 
